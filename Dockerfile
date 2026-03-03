@@ -6,7 +6,8 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
+COPY backend/plugins/ ./plugins/
 
-EXPOSE 5000
+EXPOSE 18791
 
 CMD ["python", "app.py"]

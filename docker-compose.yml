@@ -6,13 +6,14 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
-    volumes:
-      - ./backend:/app
-      - ./state.json:/app/state.json
-      - ./agents-state.json:/app/agents-state.json
-      - ./join-keys.json:/app/join-keys.json
-      - ./memory:/app/memory
+      - "5000:18791"
+    # 生产模式：不需要挂载，数据存储在容器内
+    # 开发模式可取消注释以下 volumes
+    # volumes:
+    #   - ./state.json:/app/state.json:ro
+    #   - ./agents-state.json:/app/agents-state.json:rw
+    #   - ./join-keys.json:/app/join-keys.json:ro
+    #   - ./memory:/app/memory:ro
     environment:
       - FLASK_ENV=development
     networks:

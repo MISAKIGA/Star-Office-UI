@@ -9,17 +9,37 @@ import re
 import threading
 import sys
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PLUGINS_DIR = os.path.join(ROOT_DIR, "backend", "plugins")
-sys.path.insert(0, os.path.join(ROOT_DIR, "backend"))
+# Fix path: in Docker, __file__ is /app/app.py, so we need to handle both cases
+_app_py_dir = os.path.dirname(os.path.abspath(__file__))
+if _app_py_dir.endswith("/backend"):
+    # Development mode: app.py is in backend/
+    ROOT_DIR = os.path.dirname(_app_py_dir)
+    PLUGINS_DIR = os.path.join(ROOT_DIR, "backend", "plugins")
+    BACKEND_DIR = _app_py_dir
+else:
+    # Docker mode: app.py is directly in /app
+    ROOT_DIR = _app_py_dir
+    PLUGINS_DIR = os.path.join(ROOT_DIR, "plugins")
+    BACKEND_DIR = ROOT_DIR
+
+sys.path.insert(0, BACKEND_DIR)
 from plugins import PluginManager
 
 plugin_manager = None
-MEMORY_DIR = os.path.join(os.path.dirname(ROOT_DIR), "memory")
-FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
-STATE_FILE = os.path.join(ROOT_DIR, "state.json")
-AGENTS_STATE_FILE = os.path.join(ROOT_DIR, "agents-state.json")
-JOIN_KEYS_FILE = os.path.join(ROOT_DIR, "join-keys.json")
+
+# Memory dir: use /app/memory in Docker, project root /memory in dev
+if os.path.exists("/app/memory"):
+    MEMORY_DIR = "/app/memory"
+    FRONTEND_DIR = "/app/frontend"
+    STATE_FILE = "/app/state.json"
+    AGENTS_STATE_FILE = "/app/agents-state.json"
+    JOIN_KEYS_FILE = "/app/join-keys.json"
+else:
+    MEMORY_DIR = os.path.join(os.path.dirname(ROOT_DIR), "memory")
+    FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
+    STATE_FILE = os.path.join(ROOT_DIR, "state.json")
+    AGENTS_STATE_FILE = os.path.join(ROOT_DIR, "agents-state.json")
+    JOIN_KEYS_FILE = os.path.join(ROOT_DIR, "join-keys.json")
 
 
 def get_yesterday_date_str():
