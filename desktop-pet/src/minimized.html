@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Star Mini</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      /* 调这个值可控制“状态栏”和“精灵”之间的距离（越大越远） */
+      --mini-status-sprite-gap: 0px;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: Arial, sans-serif;
+    }
+    #wrap {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 8px;
+      gap: var(--mini-status-sprite-gap);
+    }
+    #status-pill {
+      max-width: 95%;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.72);
+      color: #eee;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    #pet-box {
+      width: 180px;
+      height: 180px;
+      border-radius: 6px;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.14s ease, filter 0.18s ease;
+    }
+    #pet {
+      width: 140px;
+      height: 140px;
+      image-rendering: pixelated;
+      object-fit: contain;
+      pointer-events: none;
+      transform: scale(1);
+      filter: drop-shadow(0 0 0 rgba(250, 244, 207, 0));
+      transition: transform 0.16s ease, filter 0.2s ease;
+    }
+    #pet-box:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.04);
+    }
+    #pet-box:hover #pet {
+      filter: drop-shadow(0 0 8px rgba(250, 244, 207, 0.2));
+    }
+    #pet-box:active {
+      transform: translateY(0);
+      filter: brightness(0.98);
+    }
+    #hint {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="status-pill">加载中...</div>
+    <div id="pet-box" title="点击恢复主窗口">
+      <img id="pet" src="http://127.0.0.1:18791/static/star-idle.gif" alt="Star" />
+    </div>
+    <div id="hint">点击形象恢复主窗口</div>
+  </div>
+  <script>
+    (async function () {
+      const isTauri = !!window.__TAURI__;
+      const core = isTauri ? window.__TAURI__.core : null;
+      const eventApi = isTauri ? window.__TAURI__.event : null;
+      const win = isTauri ? window.__TAURI__.window.getCurrentWindow() : null;
+      const status = document.getElementById('status-pill');
+      const box = document.getElementById('pet-box');
+      const pet = document.getElementById('pet');
+
+      const PET_ASSETS = {
+        idle: 'http://127.0.0.1:18791/static/star-idle.gif',
+        working: 'http://127.0.0.1:18791/static/star-working.gif',
+        syncing: 'http://127.0.0.1:18791/static/sync-animation.webp',
+        error: 'http://127.0.0.1:18791/static/error-bug.webp'
+      };
+      const PET_SCALE = {
+        idle: 1,
+        working: 1.6,
+        syncing: 1.2,
+        error: 0.9
+      };
+
+      function normalizeState(state) {
+        if (!state) return 'idle';
+        if (state === 'working' || state === 'writing' || state === 'researching' || state === 'executing') return 'working';
+        if (state === 'sync' || state === 'syncing') return 'syncing';
+        if (state === 'error') return 'error';
+        return 'idle';
+      }
+
+      function stateLabel(rawState) {
+        const s = normalizeState(rawState);
+        if (s === 'working') return '工作';
+        if (s === 'syncing') return '同步';
+        if (s === 'error') return '报错';
+        return '休息';
+      }
+
+      function applyState(data, instant = false) {
+        const state = data && data.state ? data.state : 'idle';
+        const detail = data && data.detail ? data.detail : '待命中';
+        status.textContent = `[${stateLabel(state)}] ${detail}`;
+
+        const assetKey = normalizeState(state);
+        const nextSrc = PET_ASSETS[assetKey] || PET_ASSETS.idle;
+        if (pet.getAttribute('src') !== nextSrc) {
+          pet.setAttribute('src', nextSrc);
+        }
+        if (instant) {
+          const prevTransition = pet.style.transition;
+          pet.style.transition = 'none';
+          pet.style.transform = `scale(${PET_SCALE[assetKey] || 1})`;
+          requestAnimationFrame(() => {
+            pet.style.transition = prevTransition || 'transform 0.16s ease, filter 0.2s ease';
+          });
+          return;
+        }
+        pet.style.transform = `scale(${PET_SCALE[assetKey] || 1})`;
+      }
+
+      async function fetchStatus() {
+        if (!core) return;
+        try {
+          const data = await core.invoke('read_state');
+          applyState(data);
+        } catch (_) {
+          status.textContent = '连接中...';
+        }
+      }
+
+      if (eventApi && eventApi.listen) {
+        try {
+          await eventApi.listen('mini-sync-state', (evt) => {
+            if (evt && evt.payload) {
+              applyState(evt.payload, true);
+            }
+          });
+        } catch (_) {}
+      }
+
+      let downAt = null;
+      let dragTriggered = false;
+      const DRAG_THRESHOLD = 6;
+
+      document.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        downAt = { x: e.clientX, y: e.clientY };
+        dragTriggered = false;
+      });
+
+      document.addEventListener('pointermove', async (e) => {
+        if (!downAt || dragTriggered || !win) return;
+        const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+        if (moved < DRAG_THRESHOLD) return;
+        dragTriggered = true;
+        try {
+          await win.startDragging();
+        } catch (_) {}
+      });
+
+      document.addEventListener('pointerup', async () => {
+        if (!downAt) return;
+        const wasDrag = dragTriggered;
+        downAt = null;
+        dragTriggered = false;
+        // Click (not drag) to restore main window.
+        if (!wasDrag && core) {
+          try { await core.invoke('restore_main_window'); } catch (_) {}
+        }
+      });
+
+      document.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        if (!core) return;
+        try {
+          await core.invoke('close_app');
+        } catch (_) {}
+      });
+
+      await fetchStatus();
+      setInterval(fetchStatus, 2000);
+    })();
+  </script>
+</body>
+</html>

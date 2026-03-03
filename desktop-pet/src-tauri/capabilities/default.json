@@ -1,7 +1,7 @@
 {
   "identifier": "default",
   "description": "Default capabilities for the desktop pet",
-  "windows": ["main"],
+  "windows": ["main", "mini"],
   "remote": {
     "urls": [
       "http://127.0.0.1:*",

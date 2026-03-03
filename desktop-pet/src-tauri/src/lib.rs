@@ -3,10 +3,11 @@ use base64::Engine;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::process::{Child, Command, Stdio};
 use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 // ── state.json ──
 
@@ -201,12 +202,16 @@ fn encode_image(path: &PathBuf) -> Result<String, String> {
 
 // ── commands ──
 
+fn read_state_file(state_path: &PathBuf) -> Result<PetState, String> {
+    let raw = fs::read_to_string(state_path)
+        .map_err(|e| format!("{}: {e}", state_path.display()))?;
+    serde_json::from_str(&raw).map_err(|e| format!("parse: {e}"))
+}
+
 #[tauri::command]
 fn read_state(paths: tauri::State<'_, Mutex<AppPaths>>) -> Result<PetState, String> {
     let p = paths.lock().map_err(|e| e.to_string())?;
-    let raw = fs::read_to_string(&p.state_path)
-        .map_err(|e| format!("{}: {e}", p.state_path.display()))?;
-    serde_json::from_str(&raw).map_err(|e| format!("parse: {e}"))
+    read_state_file(&p.state_path)
 }
 
 #[tauri::command]
@@ -456,6 +461,86 @@ fn wait_backend_ready() -> bool {
     false
 }
 
+#[tauri::command]
+fn enter_minimize_mode(
+    app: tauri::AppHandle,
+    paths: tauri::State<'_, Mutex<AppPaths>>,
+) -> Result<(), String> {
+    let main = app
+        .get_webview_window("main")
+        .ok_or_else(|| "main window not found".to_string())?;
+    let mini = app
+        .get_webview_window("mini")
+        .ok_or_else(|| "mini window not found".to_string())?;
+
+    let state_path = {
+        let p = paths.lock().map_err(|e| e.to_string())?;
+        p.state_path.clone()
+    };
+    if let Ok(snapshot) = read_state_file(&state_path) {
+        // Sync mini immediately before showing it, avoiding stale one-shot transition.
+        let _ = mini.emit("mini-sync-state", snapshot);
+    }
+
+    // Keep mini near the main window top-left for continuity.
+    if let Ok(main_pos) = main.outer_position() {
+        let _ = mini.set_position(main_pos);
+    }
+
+    let _ = main.hide();
+    let _ = mini.show();
+    let _ = mini.set_focus();
+    Ok(())
+}
+
+#[tauri::command]
+fn restore_main_window(app: tauri::AppHandle) -> Result<(), String> {
+    let main = app
+        .get_webview_window("main")
+        .ok_or_else(|| "main window not found".to_string())?;
+    let mini = app
+        .get_webview_window("mini")
+        .ok_or_else(|| "mini window not found".to_string())?;
+
+    let _ = mini.hide();
+    let _ = main.show();
+    let _ = main.set_focus();
+    Ok(())
+}
+
+#[tauri::command]
+fn close_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+#[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let mut cmd = {
+        let mut c = Command::new("open");
+        c.arg(&url);
+        c
+    };
+
+    #[cfg(target_os = "windows")]
+    let mut cmd = {
+        let mut c = Command::new("cmd");
+        c.args(["/C", "start", "", &url]);
+        c
+    };
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut cmd = {
+        let mut c = Command::new("xdg-open");
+        c.arg(&url);
+        c
+    };
+
+    cmd.spawn()
+        .map(|_| ())
+        .map_err(|e| format!("failed to open browser: {e}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let root = find_project_root();
@@ -473,7 +558,36 @@ pub fn run() {
             state_path: root.join("state.json"),
             layers_dir: root.join("layers"),
         }))
-        .invoke_handler(tauri::generate_handler![read_state, load_layers, load_map])
+        .setup(|app| {
+            // Hidden mini window: transparent square with only avatar + status.
+            let mini = WebviewWindowBuilder::new(
+                app,
+                "mini",
+                WebviewUrl::App("minimized.html".into()),
+            )
+            .title("Star Mini")
+            .inner_size(220.0, 240.0)
+            .min_inner_size(180.0, 200.0)
+            .resizable(false)
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .shadow(false)
+            .visible(false)
+            .build()
+            .map_err(|e| e.to_string())?;
+            let _ = mini.hide();
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            read_state,
+            load_layers,
+            load_map,
+            enter_minimize_mode,
+            restore_main_window,
+            close_app,
+            open_external_url
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

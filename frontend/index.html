@@ -123,6 +123,103 @@
         body.desktop-shell #status-text {
             display: none !important;
         }
+        #window-controls {
+            display: none;
+        }
+        body.desktop-shell #window-controls {
+            display: flex;
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 10px);
+            left: 12px;
+            z-index: 1000002;
+            gap: 8px;
+        }
+        .traffic-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.25) inset;
+            position: relative;
+            transition: transform 0.12s ease, filter 0.16s ease, box-shadow 0.16s ease;
+        }
+        .traffic-btn.close { background: #ff5f57; }
+        .traffic-btn.min { background: #febc2e; }
+        .traffic-btn.max { background: #28c840; opacity: 1; cursor: pointer; }
+        .traffic-btn:disabled { pointer-events: none; }
+        .traffic-btn::before,
+        .traffic-btn::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            background: rgba(53, 53, 53, 0.9);
+            opacity: 0;
+            transition: opacity 0.14s ease;
+            transform-origin: center;
+        }
+        /* close: X */
+        .traffic-btn.close::before,
+        .traffic-btn.close::after {
+            width: 7px;
+            height: 1.4px;
+            margin-left: -3.5px;
+            margin-top: -0.7px;
+            border-radius: 999px;
+            background: rgba(95, 24, 23, 0.95);
+        }
+        .traffic-btn.close::before { transform: rotate(45deg); }
+        .traffic-btn.close::after { transform: rotate(-45deg); }
+        /* minimize: - */
+        .traffic-btn.min::before {
+            width: 7px;
+            height: 1.4px;
+            margin-left: -3.5px;
+            margin-top: -0.7px;
+            border-radius: 999px;
+            background: rgba(116, 83, 11, 0.95);
+        }
+        .traffic-btn.min::after { display: none; }
+        /* maximize: top-left triangle + bottom-right triangle */
+        .traffic-btn.max::before {
+            width: 4px;
+            height: 4px;
+            left: 50%;
+            top: 50%;
+            margin-left: -2.3px;
+            margin-top: -2.3px;
+            background: rgba(28, 86, 38, 0.96);
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+            transform: none;
+        }
+        .traffic-btn.max::after {
+            width: 4px;
+            height: 4px;
+            left: 50%;
+            top: 50%;
+            margin-left: -0.8px;
+            margin-top: -0.8px;
+            background: rgba(28, 86, 38, 0.96);
+            clip-path: polygon(100% 100%, 0 100%, 100% 0);
+            transform: none;
+        }
+        body.desktop-shell #window-controls:hover .traffic-btn::before,
+        body.desktop-shell #window-controls:hover .traffic-btn::after,
+        .traffic-btn:hover::before,
+        .traffic-btn:hover::after {
+            opacity: 1;
+        }
+        .traffic-btn:hover {
+            transform: translateY(-0.5px);
+            filter: saturate(1.03) brightness(1.02);
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.28) inset, 0 0 0 0.5px rgba(255,255,255,0.18);
+        }
+        .traffic-btn:active {
+            transform: translateY(0);
+            filter: brightness(0.94);
+        }
         #status-fab {
             display: none;
         }
@@ -225,7 +322,7 @@
             z-index: 1000002;
         }
         body.desktop-shell #hit-debug-layer {
-            display: block;
+            display: none;
         }
         .hit-debug-marker {
             position: fixed;
@@ -753,6 +850,11 @@
 </head>
 <body>
     <div id="desktop-drag-region" data-tauri-drag-region></div>
+    <div id="window-controls">
+        <button id="btn-close" class="traffic-btn close" title="关闭"></button>
+        <button id="btn-minimize-mode" class="traffic-btn min" title="最小化模式"></button>
+        <button id="btn-open-frontend" class="traffic-btn max" title="回到前端界面"></button>
+    </div>
     <div id="hit-debug-layer"></div>
     <div id="status-fab">加载中...</div>
     <!-- 加载遮罩 -->
@@ -858,6 +960,46 @@
             };
             document.addEventListener('pointerup', clearDrag);
             document.addEventListener('pointercancel', clearDrag);
+        }
+
+        function initWindowControls() {
+            if (!TAURI_DESKTOP_MODE || !window.__TAURI__ || !window.__TAURI__.core) return;
+            const core = window.__TAURI__.core;
+            const closeBtn = document.getElementById('btn-close');
+            const miniBtn = document.getElementById('btn-minimize-mode');
+            const maxBtn = document.getElementById('btn-open-frontend');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try { await core.invoke('close_app'); } catch (_) {}
+                });
+            }
+            if (miniBtn) {
+                miniBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try { await core.invoke('enter_minimize_mode'); } catch (_) {}
+                });
+            }
+            if (maxBtn) {
+                maxBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try {
+                        const url = new URL(window.location.href);
+                        url.searchParams.delete('desktop');
+                        if (core && core.invoke) {
+                            await core.invoke('open_external_url', { url: url.toString() });
+                            await core.invoke('close_app');
+                        } else {
+                            window.open(url.toString(), '_blank', 'noopener,noreferrer');
+                        }
+                    } catch (_) {
+                        window.open('http://127.0.0.1:18791/', '_blank', 'noopener,noreferrer');
+                    }
+                });
+            }
         }
 
         function initHitDebugOverlay() {
@@ -969,8 +1111,10 @@
             }, 40);
         }
         initCollapsiblePanels();
+        initWindowControls();
         initDesktopWindowDrag();
-        initHitDebugOverlay();
+        // 调试点击可视化已关闭（不再显示画圈与调试标签）
+        // initHitDebugOverlay();
         queueDesktopResize();
         window.addEventListener('resize', () => {
             if (TAURI_DESKTOP_MODE) queueDesktopResize();
