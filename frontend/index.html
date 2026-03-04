@@ -437,6 +437,22 @@
     <button id="pan-toggle" style="position:fixed; top:calc(env(safe-area-inset-top, 0px) + 12px); left:12px; z-index:999999; padding:8px 10px; font-family:ArkPixel,monospace; font-size:13px; cursor:pointer; border:2px solid #333; border-radius:5px; background:#333; color:#fff;">
         移动视野
     </button>
+    
+    <!-- Token 设置弹窗 -->
+    <div id="token-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999999; justify-content:center; align-items:center;">
+        <div style="background:#1a1a2e; border:2px solid #4a5568; border-radius:12px; padding:24px; max-width:400px; width:90%; font-family:ArkPixel,monospace; color:#e2e8f0;">
+            <div style="font-size:16px; margin-bottom:16px; text-align:center;">⚙️ API Token 设置</div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block; margin-bottom:6px; font-size:13px; color:#a0aec0;">Token:</label>
+                <input type="password" id="token-input" style="width:100%; padding:10px; border:1px solid #4a5568; border-radius:6px; background:#2d3748; color:#e2e8f0; font-family:monospace; box-sizing:border-box;" placeholder="请输入 API Token">
+            </div>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button id="token-save" style="padding:8px 20px; background:#48bb78; border:none; border-radius:6px; color:#fff; cursor:pointer; font-family:ArkPixel,monospace;">保存</button>
+                <button id="token-cancel" style="padding:8px 20px; background:#718096; border:none; border-radius:6px; color:#fff; cursor:pointer; font-family:ArkPixel,monospace;">取消</button>
+            </div>
+            <div id="token-message" style="margin-top:12px; text-align:center; font-size:12px; color:#fc8181;"></div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
     <script>
@@ -502,8 +518,21 @@
             const memoDate = document.getElementById('memo-date');
             const memoContent = document.getElementById('memo-content');
             
+            const token = localStorage.getItem('api_token') || '';
+            const headers = token ? { 'X-API-Token': token } : {};
+            
             try {
-                const response = await fetch('/yesterday-memo?t=' + Date.now(), { cache: 'no-store' });
+                const response = await fetch('/yesterday-memo?t=' + Date.now(), { 
+                    cache: 'no-store',
+                    headers: headers
+                });
+                
+                if (response.status === 403) {
+                    showTokenModal();
+                    memoContent.innerHTML = '<div id="memo-placeholder">请先设置 Token</div>';
+                    return;
+                }
+                
                 const data = await response.json();
                 
                 if (data.success && data.memo) {
@@ -515,6 +544,69 @@
             } catch (e) {
                 console.error('加载 memo 失败:', e);
                 memoContent.innerHTML = '<div id="memo-placeholder">加载失败</div>';
+            }
+        }
+        
+        // Token 管理
+        function showTokenModal() {
+            const modal = document.getElementById('token-modal');
+            const input = document.getElementById('token-input');
+            const msg = document.getElementById('token-message');
+            const savedToken = localStorage.getItem('api_token') || '';
+            
+            input.value = savedToken;
+            msg.textContent = '';
+            modal.style.display = 'flex';
+        }
+        
+        function hideTokenModal() {
+            document.getElementById('token-modal').style.display = 'none';
+        }
+        
+        async function saveToken() {
+            const input = document.getElementById('token-input');
+            const msg = document.getElementById('token-message');
+            const token = input.value.trim();
+            
+            if (!token) {
+                msg.textContent = 'Token 不能为空';
+                return;
+            }
+            
+            // 验证 token
+            try {
+                const response = await fetch('/yesterday-memo', { 
+                    headers: { 'X-API-Token': token }
+                });
+                
+                if (response.status === 200) {
+                    localStorage.setItem('api_token', token);
+                    hideTokenModal();
+                    loadMemo();  // 重新加载
+                } else if (response.status === 403) {
+                    msg.textContent = 'Token 无效，请检查';
+                } else {
+                    msg.textContent = '验证失败: ' + response.status;
+                }
+            } catch (e) {
+                msg.textContent = '网络错误: ' + e.message;
+            }
+        }
+        
+        // 初始化 Token 弹窗事件
+        document.getElementById('token-save').addEventListener('click', saveToken);
+        document.getElementById('token-cancel').addEventListener('click', hideTokenModal);
+        
+        // 添加 Token 设置按钮到控制栏
+        function initTokenButton() {
+            const controlButtons = document.getElementById('control-buttons');
+            if (controlButtons) {
+                const tokenBtn = document.createElement('button');
+                tokenBtn.textContent = '🔑';
+                tokenBtn.title = '设置 Token';
+                tokenBtn.onclick = showTokenModal;
+                tokenBtn.style.marginLeft = '8px';
+                controlButtons.appendChild(tokenBtn);
             }
         }
 
@@ -669,9 +761,13 @@
 
         // 状态控制栏函数（用于测试）
         function setState(state, detail) {
+            const token = localStorage.getItem('api_token') || '';
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['X-API-Token'] = token;
+            
             fetch('/set_state', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify({ state, detail })
             }).then(() => fetchStatus());
         }
@@ -1170,7 +1266,10 @@
             // demo 随机状态先更新（不依赖后端）
             maybeRandomizeDemoVisitors();
 
-            return fetch('/agents?t=' + Date.now(), { cache: 'no-store' })
+            const token = localStorage.getItem('api_token') || '';
+            const headers = token ? { 'X-API-Token': token } : {};
+            
+            return fetch('/agents?t=' + Date.now(), { cache: 'no-store', headers: headers })
                 .then(response => response.json())
                 .then(data => {
                     // 无论后端返回是否为数组，demo=1 都应保证本地 demo 访客可见
@@ -1738,6 +1837,7 @@
 
             // 加载昨日 memo
             loadMemo();
+            initTokenButton();
 
             fetchStatus();
             fetchGuestAgents();
@@ -1858,7 +1958,9 @@
         }
 
         function fetchStatus() {
-            fetch('/status')
+            const token = localStorage.getItem('api_token') || '';
+            const headers = token ? { 'X-API-Token': token } : {};
+            fetch('/status', { headers: headers })
                 .then(response => response.json())
                 .then(data => {
                     const nextState = normalizeState(data.state);
