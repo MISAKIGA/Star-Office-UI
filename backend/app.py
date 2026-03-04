@@ -1034,6 +1034,7 @@ def sync_memo():
         "date": "2026-03-03",       // 日期 (可选，默认昨天)
         "memo": "xxx",               // memo 内容 (必填)
         "summary": "xxx"             // 简短摘要 (可选)
+        "is_today": false            // 是否为今日 (可选)
     }
     
     去重判断: 相同 source + date 已存在则覆盖
@@ -1047,6 +1048,7 @@ def sync_memo():
         memo = (data.get("memo") or "").strip()
         date = data.get("date", "").strip() or get_yesterday_date_str()
         summary = (data.get("summary") or "").strip()
+        is_today = data.get("is_today", False)
         
         if not source:
             return jsonify({"ok": False, "msg": "缺少 source 参数"}), 400
@@ -1063,8 +1065,9 @@ def sync_memo():
             "source": source,
             "date": date,
             "memo": memo,
-            "summary": summary or memo[:50] + "..." if len(memo) > 50 else memo,
-            "synced_at": datetime.now().isoformat()
+            "summary": summary or (memo[:50] + "..." if len(memo) > 50 else memo),
+            "synced_at": datetime.now().isoformat(),
+            "is_today": is_today
         }
         
         with open(memo_file, "w", encoding="utf-8") as f:
@@ -1075,7 +1078,7 @@ def sync_memo():
             "msg": "同步成功",
             "source": source,
             "date": date,
-            "is_new": True  # 可用于判断是否为新同步
+            "is_new": True
         })
         
     except Exception as e:
@@ -1127,6 +1130,51 @@ def get_source_memo(source, date=None):
             memo_data = json.load(f)
         
         return jsonify({"success": True, **memo_data})
+        
+    except Exception as e:
+        return jsonify({"success": False, "msg": str(e)}), 500
+
+
+@app.route("/today-memo", methods=["GET"])
+@app.route("/today-memo", methods=["GET"])
+def get_today_memo():
+    """获取今日工作日志 (从 memory 目录读取)"""
+    try:
+        # 支持 ?source=xxx 指定来源
+        source = request.args.get("source", "").strip()
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        
+        # 如果指定了来源，获取该来源的今日 memo
+        if source:
+            memo_file = get_source_memo_file(source, today_str)
+            if os.path.exists(memo_file):
+                with open(memo_file, "r", encoding="utf-8") as f:
+                    memo_data = json.load(f)
+                return jsonify({
+                    "success": True, 
+                    "date": memo_data.get("date"),
+                    "source": memo_data.get("source"),
+                    "memo": memo_data.get("memo"),
+                    "summary": memo_data.get("summary"),
+                    "is_today": True
+                })
+            else:
+                return jsonify({"success": False, "msg": f"没有找到来源 {source} 的今日 memo"})
+        
+        # 原逻辑: 读取本地 memory 目录的今日文件
+        today_file = os.path.join(MEMORY_DIR, f"{today_str}.md")
+        
+        if os.path.exists(today_file):
+            with open(today_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            return jsonify({
+                "success": True, 
+                "date": today_str,
+                "memo": content,
+                "source": "local"
+            })
+        
+        return jsonify({"success": False, "msg": "没有找到今日日记"})
         
     except Exception as e:
         return jsonify({"success": False, "msg": str(e)}), 500

@@ -282,6 +282,86 @@
             font-size: 10px;
             flex-shrink: 0;
         }
+        
+        /* Memo Tabs */
+        #memo-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+        .memo-tab {
+            color: #666;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .memo-tab:hover {
+            color: #e94560;
+            border-color: #e94560;
+        }
+        .memo-tab.active {
+            color: #ffd700;
+            background: rgba(233, 69, 96, 0.2);
+            border-color: #e94560;
+        }
+        
+        /* Memo Expand/Collapse */
+        .memo-collapsed {
+            max-height: 80px !important;
+            overflow: hidden !important;
+        }
+        .memo-toggle {
+            text-align: center;
+            cursor: pointer;
+            padding: 4px;
+            color: #888;
+            font-size: 12px;
+            flex-shrink: 0;
+            transition: color 0.2s;
+        }
+        .memo-toggle:hover {
+            color: #e94560;
+        }
+        
+        /* Markdown Styles in Memo */
+        #memo-content h1, #memo-content h2, #memo-content h3 {
+            color: #e94560;
+            margin: 8px 0 4px 0;
+            font-size: 13px;
+        }
+        #memo-content p {
+            margin: 4px 0;
+        }
+        #memo-content ul, #memo-content ol {
+            margin: 4px 0;
+            padding-left: 16px;
+        }
+        #memo-content li {
+            margin: 2px 0;
+        }
+        #memo-content code {
+            background: rgba(0,0,0,0.2);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        #memo-content pre {
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        #memo-content blockquote {
+            border-left: 3px solid #e94560;
+            padding-left: 8px;
+            margin: 8px 0;
+            color: #888;
+        }
 
         /* 手机端专属适配（不影响桌面） */
         @media (max-width: 900px), (pointer: coarse) {
@@ -398,11 +478,17 @@
     <div id="bottom-panels">
         <!-- Memo 面板 -->
         <div id="memo-panel">
-            <div id="memo-title">— 昨 日 小 记 —</div>
+            <div id="memo-tabs">
+                <span id="memo-tab-yesterday" class="memo-tab active" onclick="switchMemoTab('yesterday')">昨日</span>
+                <span id="memo-tab-today" class="memo-tab" onclick="switchMemoTab('today')">今日</span>
+            </div>
             <div id="memo-date"></div>
             <div class="memo-decoration">─ ─ ─ ─ ─</div>
-            <div id="memo-content">
+            <div id="memo-content" class="memo-collapsed">
                 <div id="memo-placeholder">加载中...</div>
+            </div>
+            <div class="memo-toggle" onclick="toggleMemoExpand()">
+                <span id="memo-toggle-icon">▼</span>
             </div>
             <div class="memo-decoration">─ ─ ─ ─ ─</div>
         </div>
@@ -514,15 +600,63 @@
         let loadingProgressBar, loadingProgressContainer, loadingOverlay, loadingText;
 
         // Memo 相关函数
+        let currentMemoTab = 'yesterday'; // 'yesterday' or 'today'
+        let isMemoExpanded = false;
+        
         async function loadMemo() {
+            await loadMemoContent(currentMemoTab);
+        }
+        
+        // Simple markdown parser for memo content
+        function parseMarkdown(text) {
+            if (!text) return '';
+            
+            // Escape HTML first
+            text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            // Headers
+            text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+            
+            // Bold and Italic
+            text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            
+            // Code blocks
+            text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // Blockquotes
+            text = text.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+            
+            // Lists
+            text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
+            text = text.replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>');
+            
+            // Line breaks
+            text = text.replace(/\n/g, '<br>');
+            
+            // Wrap consecutive <li> in <ul>
+            text = text.replace(/(<li>.*<\/li>)(<br>)?/g, '$1');
+            
+            return text;
+        }
+        
+        async function loadMemoContent(tab) {
             const memoDate = document.getElementById('memo-date');
             const memoContent = document.getElementById('memo-content');
+            const memoTabYesterday = document.getElementById('memo-tab-yesterday');
+            const memoTabToday = document.getElementById('memo-tab-today');
             
             const token = localStorage.getItem('api_token') || '';
             const headers = token ? { 'X-API-Token': token } : {};
             
+            const endpoint = tab === 'yesterday' ? '/yesterday-memo' : '/today-memo';
+            
             try {
-                const response = await fetch('/yesterday-memo?t=' + Date.now(), { 
+                const response = await fetch(endpoint + '?t=' + Date.now(), { 
                     cache: 'no-store',
                     headers: headers
                 });
@@ -536,14 +670,40 @@
                 const data = await response.json();
                 
                 if (data.success && data.memo) {
-                    memoDate.textContent = data.date || '';
-                    memoContent.innerHTML = data.memo.replace(/\n/g, '<br>');
+                    memoDate.textContent = (data.date || '') + (data.source ? ` (${data.source})` : '');
+                    // Parse markdown
+                    memoContent.innerHTML = parseMarkdown(data.memo);
                 } else {
-                    memoContent.innerHTML = '<div id="memo-placeholder">暂无昨日日记</div>';
+                    memoContent.innerHTML = `<div id="memo-placeholder">暂无${tab === 'yesterday' ? '昨日' : '今日'}日记</div>`;
                 }
             } catch (e) {
                 console.error('加载 memo 失败:', e);
                 memoContent.innerHTML = '<div id="memo-placeholder">加载失败</div>';
+            }
+        }
+        
+        function switchMemoTab(tab) {
+            currentMemoTab = tab;
+            
+            // Update tab UI
+            document.getElementById('memo-tab-yesterday').classList.toggle('active', tab === 'yesterday');
+            document.getElementById('memo-tab-today').classList.toggle('active', tab === 'today');
+            
+            // Load content
+            loadMemoContent(tab);
+        }
+        
+        function toggleMemoExpand() {
+            isMemoExpanded = !isMemoExpanded;
+            const memoContent = document.getElementById('memo-content');
+            const toggleIcon = document.getElementById('memo-toggle-icon');
+            
+            if (isMemoExpanded) {
+                memoContent.classList.remove('memo-collapsed');
+                toggleIcon.textContent = '▲';
+            } else {
+                memoContent.classList.add('memo-collapsed');
+                toggleIcon.textContent = '▼';
             }
         }
         
