@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
 COPY backend/plugins/ ./plugins/
+COPY frontend/ ./frontend/
 
 EXPOSE 18791
 
