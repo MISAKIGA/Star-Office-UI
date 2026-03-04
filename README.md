@@ -1,169 +1,213 @@
 # Star Office UI
 
-一个面向多 Agent 协作的像素办公室看板：把 AI 助手（OpenClaw / 龙虾）的工作状态实时可视化，帮助团队直观看到“谁在做什么、昨天做了什么、现在是否在线”。
-
-![Star Office UI 预览](docs/screenshots/office-preview-20260301.jpg)
+[English](#english) | [中文](#中文)
 
 ---
 
-## 这是个什么项目？（一句话）
+<!-- ENGLISH VERSION -->
 
-Star Office UI 是一个“多人协作状态看板”——你可以把它想象成：
-> 一个实时更新的“像素办公室仪表盘”：你的 AI 助手（和你邀请的其他 Agent）会根据状态自动走到不同位置（休息区 / 工作区 / bug 区），你还能看到他们昨天的工作小记。
+# English
 
----
+## Overview
 
-## ✨ 30 秒快速体验（推荐先看这里）
+A pixel office dashboard for multi-agent collaboration: visualize your AI assistants' work status in real-time, helping teams see "who is doing what, what they did yesterday, and whether they are online."
 
-```bash
-# 1) 下载仓库
-git clone https://github.com/ringhyacinth/Star-Office-UI.git
-cd Star-Office-UI
+![Star Office UI Preview](docs/screenshots/office-preview-20260301.jpg)
 
-# 2) 安装依赖
-python3 -m pip install -r backend/requirements.txt
+## Features
 
-# 3) 准备状态文件（首次）
-cp state.sample.json state.json
+- **Real-time Status Visualization** - AI agents move to different office areas based on their status (idle/working/researching/error)
+- **Yesterday Memo** - Automatic summary of agent activities from the previous day
+- **Multi-Agent Support** - Invite guest agents to join the office
+- **Mobile Friendly** - Access on any device
+- **OpenClaw Plugin** - Automatic state synchronization (see [OpenClaw Plugin](#openclaw-plugin-integration))
 
-# 4) 启动后端
-cd backend
-python3 app.py
-```
+## Quick Start
 
-打开：**http://127.0.0.1:18791**
-
-切状态试试（在项目根目录执行）：
-```bash
-python3 set_state.py writing "正在整理文档"
-python3 set_state.py syncing "同步进度中"
-python3 set_state.py error "发现问题，排查中"
-python3 set_state.py idle "待命中"
-```
-
----
-
-## 1、这个项目实现了什么
-
-Star Office UI 目前实现了：
-
-1. **可视化龙虾工作状态**
-   - 状态：`idle`（闲置）、`writing`（工作）、`researching`（研究）、`executing`（执行）、`syncing`（同步）、`error`（报 bug）
-   - 状态会映射到办公室里的不同区域，并通过动画/气泡展示。
-
-2. **“昨日小记”微型总结**
-   - 前端展示“昨日小记”卡片。
-   - 后端从 `memory/*.md` 中读取昨天（或最近可用）的记录，做基础脱敏后展示。
-
-3. **支持邀请其他访客加入办公室（功能持续迭代中）**
-   - 通过 join key 加入。
-   - 访客可持续 push 自己状态到办公室看板。
-   - 当前已可用，但整体仍在持续优化交互与接入体验。
-
-4. **已适配手机端访问**
-   - 移动端可直接打开与查看状态（适合外出时快速查看）。
-
-5. **公网访问方式灵活**
-   - Skill 默认建议使用 Cloudflare Tunnel 快速公网化。
-   - 也可以使用你自己的公网域名 / 反向代理方案。
-
----
-
-## 2、本次更新相比上次的主要内容
-
-本次发布相对早期基础版，新增/升级重点如下：
-
-- 新增多 Agent 机制：`/join-agent`、`/agent-push`、`/leave-agent`、`/agents`
-- 新增“昨日小记”接口与前端展示：`/yesterday-memo`
-- 状态体系更完整：支持 `syncing`、`error` 等状态可视化
-- 场景与角色动画升级：补充大量像素动画资产（含访客角色）
-- 文档与 Skill 重写：更适合外部程序员快速上手
-- 清理发布结构：去除临时文件 / 缓存 / 日志，降低阅读门槛
-- 补充开源声明：代码 MIT、但美术资产禁止商用
-
----
-
-## 3、快速开始
-
-### 1) 安装依赖
+### Docker (Recommended)
 
 ```bash
-cd star-office-ui
-python3 -m pip install -r backend/requirements.txt
-```
-
-### 2) 初始化状态文件
-
-```bash
-cp state.sample.json state.json
-```
-
-### 3) 启动后端
-
-```bash
-cd backend
-python3 app.py
-```
-
-打开：`http://127.0.0.1:18791`
-
-### 4) 切换主 Agent 状态（示例）
-
-```bash
-python3 set_state.py writing "正在整理文档"
-python3 set_state.py syncing "同步进度中"
-python3 set_state.py error "发现问题，排查中"
-python3 set_state.py idle "待命中"
-```
-
----
-
-## 4、Docker 部署（推荐）
-
-> ⚠️ **2026-03 更新**: 新版部署支持 **API Token 鉴权** 和 **OpenClaw Plugin**，推荐使用以下方式。
-
-### 快速启动
-
-```bash
-# 1) 克隆仓库
+# 1) Clone repository
 git clone https://github.com/MISAKIGA/Star-Office-UI.git
 cd Star-Office-UI
 
-# 2) 复制并配置环境变量
+# 2) Configure environment
 cp .env.example .env
-# 编辑 .env 文件，填入您的 API_TOKEN 和 ADMIN_TOKEN
+# Edit .env with your API_TOKEN and ADMIN_TOKEN
 
-# 3) 启动所有服务
+# 3) Start services
 docker-compose up -d
 
-# 4) 访问
-# 前端：http://localhost:18791
-# 后端 API：http://localhost:18791/api/
+# 4) Access
+# Frontend: http://localhost:18791
+# API: http://localhost:18791/api/
 ```
 
-### 环境变量说明
+### Manual Deployment
 
-| 变量 | 必填 | 默认值 | 说明 |
-|------|------|--------|------|
-| `API_TOKEN` | ✅ | - | API 鉴权 Token，用于状态推送 |
-| `ADMIN_TOKEN` | ✅ | - | 管理 Token，用于生成/撤销 Token |
-| `PORT` | - | 18791 | 服务端口 |
-| `LOG_LEVEL` | - | info | 日志级别 |
-| `STATE_FILE` | - | /app/data/state.json | 状态文件路径 |
-| `AUTO_IDLE_SECONDS` | - | 300 | 自动空闲超时（秒） |
+```bash
+# 1) Clone and install
+git clone https://github.com/MISAKIGA/Star-Office-UI.git
+cd Star-Office-UI
+python3 -m pip install -r backend/requirements.txt
 
-生成随机 Token：
+# 2) Initialize
+cp state.sample.json state.json
+
+# 3) Start
+cd backend
+python3 app.py
+```
+
+Open **http://127.0.0.1:18791**
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `API_TOKEN` | Yes | - | API authentication token |
+| `ADMIN_TOKEN` | Yes | - | Admin token for management |
+| `PORT` | No | 18791 | Service port |
+| `LOG_LEVEL` | No | info | Log level |
+| `AUTO_IDLE_SECONDS` | No | 300 | Auto idle timeout (seconds) |
+
+Generate a random token:
 ```bash
 openssl rand -hex 32
 ```
 
-### 手动构建
+## API Reference
+
+### Status Management
 
 ```bash
-# 构建镜像
+# Get current status (public)
+curl http://localhost:18791/api/v1/status
+
+# Set main agent status (requires API Token)
+curl -X POST http://localhost:18791/api/v1/status \
+  -H "Content-Type: application/json" \
+  -H "X-API-Token: your-api-token" \
+  -d '{"state": "writing", "detail": "Developing feature"}'
+
+# Push agent status (requires API Token)
+curl -X POST http://localhost:18791/api/v1/agent/push \
+  -H "Content-Type: application/json" \
+  -H "X-API-Token: your-api-token" \
+  -d '{
+    "agentId": "openclaw-main",
+    "name": "Shinyi",
+    "state": "writing",
+    "detail": "Developing"
+  }'
+```
+
+### Admin APIs
+
+```bash
+# Generate new API Token
+curl -X POST http://localhost:18791/api/v1/admin/token/generate \
+  -H "X-Admin-Token: your-admin-token"
+
+# List all tokens
+curl http://localhost:18791/api/v1/admin/tokens \
+  -H "X-Admin-Token: your-admin-token"
+
+# Revoke token
+curl -X DELETE http://localhost:18791/api/v1/admin/token/<token> \
+  -H "X-Admin-Token: your-admin-token"
+```
+
+## OpenClaw Plugin Integration
+
+> Automatically synchronize agent status to Star Office UI dashboard
+
+### Why Use the Plugin?
+
+| Benefit | Description |
+|---------|-------------|
+| **Automatic** | No manual scripts - status syncs automatically |
+| **Real-time** | Updates when agent starts/ends/idle |
+| **Lifecycle Aware** | Tracks all agent states (working, error, idle) |
+| **Zero Config** | Works out of the box with OpenClaw |
+
+### Plugin Features
+
+- ✅ `onLoad` - Shows "idle" when plugin loads
+- ✅ `beforeAgentStart` / `onAgentStart` - Shows "working" when agent starts
+- ✅ `onAgentEnd` - Shows "idle" or "error" when agent ends
+- ✅ `onAgentError` - Shows error state when agent fails
+- ✅ `onIdle` - Updates status when agent is idle
+- ⏱️ **Auto Idle** - Automatically returns to idle after `autoIdleSeconds`
+
+### Installation
+
+```bash
+# Plugin is located at: ~/.openclaw/extensions/star-office-plugin/
+```
+
+### Configuration
+
+```json
+// ~/.openclaw/openclaw.json
+{
+  "plugins": {
+    "allow": ["star-office-plugin"],
+    "entries": {
+      "star-office-plugin": {
+        "enabled": true,
+        "config": {
+          "apiUrl": "http://localhost:18791",
+          "apiToken": "your-api-token",
+          "agentId": "openclaw-main",
+          "agentName": "Shinyi",
+          "autoIdleSeconds": 300
+        }
+      }
+    }
+  }
+}
+```
+
+### Plugin Benefits Detail
+
+1. **Automatic State Sync**
+   - Agent starts → Shows "working" on dashboard
+   - Agent ends → Shows "idle" on dashboard
+   - Agent errors → Shows "error" on dashboard
+
+2. **Zero Manual Work**
+   - No need to run `set_state.py` manually
+   - No cron jobs required
+   - Pure plug-and-play
+
+3. **Lifecycle Integration**
+   - Works with OpenClaw's native lifecycle hooks
+   - Captures all state transitions
+   - Real-time updates via WebSocket
+
+4. **Configurable**
+   - Custom agent names
+   - Auto idle timeout
+   - Multiple agent support
+
+## Deployment Options
+
+### Option 1: Docker Compose (Recommended)
+
+```bash
+docker-compose up -d
+```
+
+See [Docker Deployment](#docker-recommended) for details.
+
+### Option 2: Docker Run
+
+```bash
+# Build image
 docker build -t star-office-ui:latest .
 
-# 运行容器
+# Run container
 docker run -d -p 18791:18791 \
   -e API_TOKEN=your-secure-token \
   -e ADMIN_TOKEN=your-admin-token \
@@ -172,45 +216,131 @@ docker run -d -p 18791:18791 \
   star-office-ui:latest
 ```
 
-### 开发模式
+### Option 3: Manual
 
-修改代码后自动重载：
 ```bash
-docker-compose up -d --watch
+python3 -m pip install -r backend/requirements.txt
+cd backend && python3 app.py
 ```
 
-### 端口说明
+### Option 4: Pre-built Image
 
-| 服务 | 端口 | 说明 |
-|------|------|------|
-| Nginx | 18791 | 前端静态页面 + 后端 API |
+```bash
+docker run -d -p 18791:18791 \
+  -e API_TOKEN=your-token \
+  -e ADMIN_TOKEN=your-admin-token \
+  --name star-office-ui \
+  msga/star-office-ui-backend:latest
+```
 
-### 目录挂载
+## Project Structure
 
-开发模式下，以下文件/目录会挂载到容器内：
-- `backend/` - 后端代码（热重载）
-- `frontend/` - 前端代码
-- `state.json` - 主状态文件
-- `agents-state.json` - Agent 状态
-- `memory/` - 日记目录
-- `.env` - 环境变量配置
+```
+star-office-ui/
+├── backend/
+│   ├── app.py              # Flask API
+│   ├── requirements.txt
+│   └── plugins/            # Plugin system
+├── frontend/
+│   ├── index.html
+│   ├── layout.js
+│   └── assets/             # Pixel art
+├── docs/
+│   └── screenshots/
+├── docker-compose.yml
+├── Dockerfile
+├── .env.example
+└── README.md
+```
+
+## Art Assets
+
+Guest character animations use [LimeZu's free assets](https://limezu.itch.io/animated-mini-characters-2-platform-free).
+
+**Commercial Restriction:**
+- Code/Logic: MIT License
+- Art Assets: **Non-commercial use only**
+
+## License
+
+- **Code:** [MIT](LICENSE)
+- **Art Assets:** Non-commercial
 
 ---
 
-## 5、API Token 鉴权
+# 中文
 
-> 自 2026-03 版本起，所有状态修改 API 需要 Token 认证。
+## 概述
 
-### 认证方式
+一个面向多 Agent 协作的像素办公室看板：实时可视化 AI 助手的工作状态，帮助团队直观看到"谁在做什么、昨天做了什么、现在是否在线"。
 
-| Header | 说明 |
-|--------|------|
-| `X-API-Token` | 用户 API Token（读写状态） |
-| `X-Admin-Token` | 管理员 Token（管理操作） |
+![Star Office UI 预览](docs/screenshots/office-preview-20260301.jpg)
 
-### API 端点
+## 特性
 
-#### 状态管理
+- **实时状态可视化** - AI 代理根据状态自动移动到不同办公区域（空闲/工作/研究/错误）
+- **昨日小记** - 自动汇总代理前一天的活动
+- **多 Agent 支持** - 邀请访客代理加入办公室
+- **移动端适配** - 支持手机访问
+- **OpenClaw 插件** - 自动状态同步（见 [OpenClaw 插件集成](#openclaw-插件集成)）
+
+## 快速开始
+
+### Docker 部署（推荐）
+
+```bash
+# 1) 克隆仓库
+git clone https://github.com/MISAKIGA/Star-Office-UI.git
+cd Star-Office-UI
+
+# 2) 配置环境变量
+cp .env.example .env
+# 编辑 .env 填入 API_TOKEN 和 ADMIN_TOKEN
+
+# 3) 启动服务
+docker-compose up -d
+
+# 4) 访问
+# 前端：http://localhost:18791
+# API：http://localhost:18791/api/
+```
+
+### 手动部署
+
+```bash
+# 1) 克隆并安装依赖
+git clone https://github.com/MISAKIGA/Star-Office-UI.git
+cd Star-Office-UI
+python3 -m pip install -r backend/requirements.txt
+
+# 2) 初始化状态文件
+cp state.sample.json state.json
+
+# 3) 启动后端
+cd backend
+python3 app.py
+```
+
+打开 **http://127.0.0.1:18791**
+
+## 环境变量
+
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `API_TOKEN` | 是 | - | API 鉴权 Token |
+| `ADMIN_TOKEN` | 是 | - | 管理 Token |
+| `PORT` | 否 | 18791 | 服务端口 |
+| `LOG_LEVEL` | 否 | info | 日志级别 |
+| `AUTO_IDLE_SECONDS` | 否 | 300 | 自动空闲超时（秒） |
+
+生成随机 Token：
+```bash
+openssl rand -hex 32
+```
+
+## API 参考
+
+### 状态管理
 
 ```bash
 # 获取当前状态（公开）
@@ -234,7 +364,7 @@ curl -X POST http://localhost:18791/api/v1/agent/push \
   }'
 ```
 
-#### 管理接口（需要 Admin Token）
+### 管理接口
 
 ```bash
 # 生成新的 API Token
@@ -250,40 +380,35 @@ curl -X DELETE http://localhost:18791/api/v1/admin/token/<token> \
   -H "X-Admin-Token: your-admin-token"
 ```
 
-### 验证示例
-
-```bash
-# 无 Token 访问（应返回 403）
-curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:18791/api/v1/status \
-  -H "Content-Type: application/json" \
-  -d '{"state":"writing"}'
-# 输出: 403
-
-# 有 Token 访问（应返回 200）
-curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:18791/api/v1/status \
-  -H "Content-Type: application/json" \
-  -H "X-API-Token: your-api-token" \
-  -d '{"state":"writing","detail":"测试"}'
-# 输出: 200
-```
-
----
-
-## 6、OpenClaw Plugin 集成
+## OpenClaw 插件集成
 
 > 将 Agent 状态实时同步到 Star Office UI 看板
 
-### 安装插件
+### 为什么要用插件？
+
+| 优势 | 说明 |
+|------|------|
+| **自动化** | 无需手动脚本，状态自动同步 |
+| **实时** | Agent 启动/结束/空闲时立即更新 |
+| **生命周期感知** | 跟踪所有状态（工作/错误/空闲） |
+| **零配置** | 配合 OpenClaw 开箱即用 |
+
+### 插件功能
+
+- ✅ `onLoad` - 插件加载时显示"空闲"
+- ✅ `beforeAgentStart` / `onAgentStart` - Agent 启动时显示"工作中"
+- ✅ `onAgentEnd` - Agent 结束时显示"空闲"或"错误"
+- ✅ `onAgentError` - Agent 出错时显示错误状态
+- ✅ `onIdle` - Agent 空闲时更新状态
+- ⏱️ **自动空闲** - 超过 `autoIdleSeconds` 自动切换回空闲
+
+### 安装
 
 ```bash
-# 1) 安装插件（自动）
 # 插件位于: ~/.openclaw/extensions/star-office-plugin/
-
-# 2) 配置插件
-# 编辑 ~/.openclaw/openclaw.json
 ```
 
-### 配置 OpenClaw
+### 配置
 
 ```json
 // ~/.openclaw/openclaw.json
@@ -306,417 +431,111 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:18791/api/v1/sta
 }
 ```
 
-### 插件功能
+### 插件优势详解
 
-- ✅ `onLoad` - 插件加载时显示"待命中"
-- ✅ `beforeAgentStart` / `onAgentStart` - Agent 启动时显示"工作中"
-- ✅ `onAgentEnd` - Agent 结束时显示"空闲"或"错误"
-- ✅ `onAgentError` - Agent 出错时显示错误状态
-- ✅ `onIdle` - Agent 空闲时更新状态
-- ⏱️ 自动空闲 - 超过 `autoIdleSeconds` 自动切换回空闲
+1. **自动状态同步**
+   - Agent 启动 → 看板上显示"工作中"
+   - Agent 结束 → 看板上显示"空闲"
+   - Agent 报错 → 看板上显示"错误"
 
-### 插件目录结构
+2. **无需手动操作**
+   - 无需手动运行 `set_state.py`
+   - 无需 cron 定时任务
+   - 即插即用
 
-```
-~/.openclaw/extensions/star-office-plugin/
-├── package.json
-├── openclaw.plugin.json
-├── tsconfig.json
-├── src/
-│   └── index.ts
-└── dist/                  # 编译后
-    └── index.js
-```
+3. **生命周期集成**
+   - 配合 OpenClaw 原生生命周期钩子
+   - 捕获所有状态转换
+   - 通过 WebSocket 实时更新
 
----
+4. **可配置**
+   - 自定义 Agent 名称
+   - 自动空闲超时
+   - 多 Agent 支持
 
-## 7、插件系统
+## 部署方式
 
-Star Office UI 支持通过插件扩展功能。
-
-### 创建插件
-
-在 `backend/plugins/` 目录下创建 Python 文件：
-
-```python
-# backend/plugins/my_plugin.py
-def on_load(app=None):
-    """插件加载时调用"""
-    print("[MyPlugin] loaded")
-    if app:
-        @app.route('/my-plugin/hello')
-        def hello():
-            return {"message": "Hello from plugin!"}
-    return {"status": "loaded"}
-
-def on_unload():
-    """插件卸载时调用"""
-    print("[MyPlugin] unloaded")
-```
-
-### 生命周期钩子
-
-| 钩子 | 说明 |
-|------|------|
-| `on_load(app)` | 插件加载时调用，传入 Flask app 实例 |
-| `on_unload()` | 插件卸载时调用 |
-
-### 管理插件
-
-```python
-from plugins import plugin_manager
-
-# 列出已加载插件
-print(plugin_manager.list_loaded())
-
-# 获取插件实例
-plugin = plugin_manager.get_plugin("my_plugin")
-
-# 卸载插件
-plugin_manager.unload("my_plugin")
-```
-
-### 重启生效
-
-添加或修改插件后，需要重启后端服务。
-
----
-
-## 6、常用 API
-
-- `GET /health`：健康检查
-- `GET /status`：主 Agent 状态
-- `POST /set_state`：设置主 Agent 状态
-- `GET /agents`：获取多 Agent 列表
-- `POST /join-agent`：访客加入
-- `POST /agent-push`：访客推送状态
-- `POST /leave-agent`：访客离开
-- `GET /yesterday-memo`：昨日小记
-
----
-
-## 7、美术资产使用说明（请务必阅读）
-
-### 访客角色资产来源
-
-访客角色动画使用了 LimeZu 的免费资产：
-- **Animated Mini Characters 2 (Platformer) [FREE]**
-- https://limezu.itch.io/animated-mini-characters-2-platform-free
-
-请在二次发布/演示时保留来源说明，并遵守原作者许可条款。
-
-### 其他资产说明与免责（重要）
-
-- **主角色（宝石海星）与谐音说明**：
-  - “宝石海星”是任天堂《宝可梦》（Pokémon）系列中已有的角色 IP，**不是本项目原创 IP**。
-  - 本项目仅为**非商用二创/粉丝创作**：选择这个角色，是因为“宝石海星”与作者名字“海辛”在中文发音上有谐音趣味。
-  - 本项目的二创内容仅供学习、演示、交流使用，**无任何商业用途**。
-  - 任天堂、宝可梦、“宝石海星”均为任天堂/宝可梦公司的商标或注册商标。
-  - 若你计划使用本项目相关内容，请使用你自己的原创角色/美术资产。
-
-- **办公室场景与其他素材**：由本项目作者团队自行制作。
-
-### 商用限制（重要）
-
-- 代码玩法可以基于 MIT 使用与二次开发。
-- **本仓库所有美术资产（含主角色/场景/素材整包）禁止商用。**
-- 若你要做商用，请务必制作并替换成你自己的原创美术资产。
-
----
-
-## 8、开源许可与声明
-
-- **Code / Logic：MIT**（见 `LICENSE`）
-- **Art Assets：非商用，仅学习/演示用途**
-
-欢迎 Fork、交流玩法、提 PR；但请严格遵守资产使用边界。
-
----
-
-## 9、期待更多玩法交流
-
-欢迎你基于这个框架扩展：
-- 更丰富的状态语义与自动编排
-- 多房间/多团队协作地图
-- 任务看板、时间线、日报自动生成
-- 更完整的访问控制与权限体系
-
-如果你做了有趣改造，欢迎分享！
-
----
-
-## 8、作者社交账号
-
-- **X：Ring Hyacinth (@ring_hyacinth)**  
-  https://x.com/ring_hyacinth
-- **X：Simon Lee (@simonxxoo)**  
-  https://x.com/simonxxoo
-
----
-
-## 项目结构（简版）
-
-```text
-star-office-ui/
-  backend/
-    app.py
-    requirements.txt
-    run.sh
-  frontend/
-    index.html
-    join.html
-    invite.html
-    layout.js
-    ...assets
-  docs/
-    screenshots/
-  office-agent-push.py
-  set_state.py
-  state.sample.json
-  join-keys.json
-  SKILL.md
-  README.md
-  LICENSE
-```
-
----
-
----
-
----
-
-# Star Office UI
-
-A pixel office dashboard for multi-agent collaboration: visualize your AI assistants’ (OpenClaw / "lobster") work status in real-time, helping the team intuitively see "who is doing what, what they did yesterday, and whether they are online now."
-
-![Star Office UI Preview](docs/screenshots/office-preview-20260301.jpg)
-
----
-
-## What is this project? (In one sentence)
-
-Star Office UI is a "multi-person collaboration status dashboard"—think of it as:
-> A real-time "pixel office dashboard": your AI assistants (and other agents you invite) automatically move to different areas based on their status (breakroom / desk / bug area), and you can also see a micro-summary of their work from yesterday.
-
----
-
-## ✨ 30-second Quick Start (Recommended)
+### 方式一：Docker Compose（推荐）
 
 ```bash
-# 1) Clone repository
-git clone https://github.com/ringhyacinth/Star-Office-UI.git
-cd Star-Office-UI
+docker-compose up -d
+```
 
-# 2) Install dependencies
+详见 [Docker 部署](#docker-部署推荐)。
+
+### 方式二：Docker Run
+
+```bash
+# 构建镜像
+docker build -t star-office-ui:latest .
+
+# 运行容器
+docker run -d -p 18791:18791 \
+  -e API_TOKEN=your-secure-token \
+  -e ADMIN_TOKEN=your-admin-token \
+  -v $(pwd)/data:/app/data \
+  --name star-office-ui \
+  star-office-ui:latest
+```
+
+### 方式三：手动部署
+
+```bash
 python3 -m pip install -r backend/requirements.txt
-
-# 3) Initialize state file (first run)
-cp state.sample.json state.json
-
-# 4) Start backend
-cd backend
-python3 app.py
+cd backend && python3 app.py
 ```
 
-Open: **http://127.0.0.1:18791**
-
-Try changing states (run from project root):
-```bash
-python3 set_state.py writing "Organizing documents"
-python3 set_state.py syncing "Syncing progress"
-python3 set_state.py error "Found an issue, debugging"
-python3 set_state.py idle "Standing by"
-```
-
----
-
-## I. What does this project do?
-
-Star Office UI currently provides:
-
-1. **Visualize lobster work status**
-   - States: `idle`, `writing`, `researching`, `executing`, `syncing`, `error`
-   - States map to different areas in the office and are shown with animations / bubbles.
-
-2. **"Yesterday Memo" micro-summary**
-   - A "Yesterday Memo" card in the UI.
-   - Backend reads yesterday’s (or most recent available) records from `memory/*.md` and displays them after basic privacy sanitization.
-
-3. **Support inviting other guests to join the office (feature ongoing)**
-   - Join via join key.
-   - Guests can continuously push their status to the office dashboard.
-   - Currently usable, but overall interaction and onboarding experience are still being optimized.
-
-4. **Mobile-friendly access**
-   - Mobile devices can directly open and view status (great for quick checks on the go).
-
-5. **Flexible public access options**
-   - Skill defaults to using Cloudflare Tunnel for quick public access.
-   - You can also use your own public domain / reverse proxy setup.
-
----
-
-## II. Main changes in this update
-
-This release adds/upgrades the following compared to the early base version:
-
-- Added multi-agent mechanism: `/join-agent`, `/agent-push`, `/leave-agent`, `/agents`
-- Added "Yesterday Memo" endpoint and UI: `/yesterday-memo`
-- More complete state system: supports visualization for `syncing`, `error`, etc.
-- Scene and character animation upgrade: added lots of pixel art assets (including guest roles)
-- Rewrote docs and Skill: more beginner-friendly for external programmers
-- Cleaned up release structure: removed temp files / cache / logs to lower comprehension barrier
-- Added open-source notice: code under MIT, but art assets are non-commercial
-
----
-
-## III. Quick Start
-
-### 1) Install dependencies
+### 方式四：预构建镜像
 
 ```bash
-cd star-office-ui
-python3 -m pip install -r backend/requirements.txt
+docker run -d -p 18791:18791 \
+  -e API_TOKEN=your-token \
+  -e ADMIN_TOKEN=your-admin-token \
+  --name star-office-ui \
+  msga/star-office-ui-backend:latest
 ```
 
-### 2) Initialize state file
+## 项目结构
 
-```bash
-cp state.sample.json state.json
 ```
-
-### 3) Start backend
-
-```bash
-cd backend
-python3 app.py
-```
-
-Open: `http://127.0.0.1:18791`
-
-### 4) Switch main Agent status (example)
-
-```bash
-python3 set_state.py writing "Organizing documents"
-python3 set_state.py syncing "Syncing progress"
-python3 set_state.py error "Found an issue, debugging"
-python3 set_state.py idle "Standing by"
-```
-
----
-
-## IV. Common APIs
-
-- `GET /health`: Health check
-- `GET /status`: Main agent status
-- `POST /set_state`: Set main agent status
-- `GET /agents`: Get multi-agent list
-- `POST /join-agent`: Guest joins
-- `POST /agent-push`: Guest pushes status
-- `POST /leave-agent`: Guest leaves
-- `GET /yesterday-memo`: Yesterday Memo
-
----
-
-## V. Art Asset Usage Notes (Please Read)
-
-### Guest character asset source
-
-Guest character animations use LimeZu’s free assets:
-- **Animated Mini Characters 2 (Platformer) [FREE]**
-- https://limezu.itch.io/animated-mini-characters-2-platform-free
-
-Please keep the source attribution and follow the original author’s license terms when redistributing / demonstrating.
-
-### Other asset notes & disclaimer (Important)
-
-- **Main character (Starmie) & homophone note:**
-  - “Starmie” is an existing character IP from Nintendo/Pokémon, **not original to this project**.
-  - This project is **non-commercial fan creation only**: this character was chosen because of a fun homophone between “Starmie” and the author’s Chinese name “海辛” (Hǎi Xīn).
-  - All fan-created content in this project is for **learning, demonstration, and idea sharing only, with no commercial use**.
-  - Nintendo, Pokémon, and “Starmie” are trademarks or registered trademarks of Nintendo/The Pokémon Company.
-  - If you plan to use any content related to this project, please use your own original characters/art assets.
-
-- **Office scene & other assets:** created by the project author team.
-
-### Commercial restriction (Important)
-
-- Code/logic may be used and modified under MIT.
-- **All art assets in this repo (including main character / scene / full pack) are NOT for commercial use.**
-- If you want to use this commercially, please create and replace with your own original art assets.
-
----
-
-## VI. Open-source License & Notice
-
-- **Code / Logic: MIT** (see `LICENSE`)
-- **Art Assets: non-commercial, for learning / demo only**
-
-Forks, idea sharing, and PRs are welcome; please strictly respect the asset usage boundaries.
-
----
-
-## VII. Looking forward to more idea sharing
-
-Feel free to extend this framework with:
-- Richer state semantics and auto-orchestration
-- Multi-room / multi-team collaboration maps
-- Task boards, timelines, auto-generated daily reports
-- More complete access control and permission systems
-
-If you make an interesting modification, please share!
-
----
-
-## VIII. Author social accounts
-
-- **X: Ring Hyacinth (@ring_hyacinth)**  
-  https://x.com/ring_hyacinth
-- **X: Simon Lee (@simonxxoo)**  
-  https://x.com/simonxxoo
-
----
-
-## Project structure (simplified)
-
-```text
 star-office-ui/
-  backend/
-    app.py              # Flask API (带 Token 鉴权)
-    requirements.txt
-    run.sh
-  frontend/
-    index.html
-    join.html
-    invite.html
-    layout.js
-    ...assets
-  docs/
-    screenshots/
-  .env.example          # 环境变量模板
-  docker-compose.yml    # Docker 部署配置
-  Dockerfile
-  nginx.conf
-  office-agent-push.py  # 状态推送脚本
-  set_state.py          # 状态设置脚本
-  state.sample.json
-  join-keys.json
-  SKILL.md
-  README.md
-  LICENSE
-  .github/workflows/
-    docker.yml          # CI/CD 自动构建
+├── backend/
+│   ├── app.py              # Flask API
+│   ├── requirements.txt
+│   └── plugins/            # 插件系统
+├── frontend/
+│   ├── index.html
+│   ├── layout.js
+│   └── assets/             # 像素素材
+├── docs/
+│   └── screenshots/
+├── docker-compose.yml
+├── Dockerfile
+├── .env.example
+└── README.md
 ```
+
+## 美术资产
+
+访客角色动画使用 [LimeZu 免费素材](https://limezu.itch.io/animated-mini-characters-2-platform-free)。
+
+**商用限制：**
+- 代码/逻辑：MIT 许可证
+- 美术资产：**仅供非商用**
+
+## 许可证
+
+- **代码：** [MIT](LICENSE)
+- **美术资产：** 非商用
 
 ---
 
 ## 更新日志
 
 ### 2026-03 (v1.1.0)
-- ✅ 新增 API Token 鉴权（安全提升）
+- ✅ 新增 API Token 鉴权
 - ✅ 新增 OpenClaw Lifecycle Plugin
 - ✅ 支持 Docker Compose 一键部署
 - ✅ 新增 .env.example 环境变量模板
-- ✅ 新增 GitHub Actions CI/CD
-- ✅ 优化 README 部署文档
-```
+- ✅ 新增预构建 Docker 镜像 `msga/star-office-ui-backend:latest`
+- ✅ 优化 README 中英双语支持
