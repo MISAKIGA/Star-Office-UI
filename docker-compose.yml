@@ -17,6 +17,9 @@ services:
     #   - ./memory:/app/memory:ro
     environment:
       - FLASK_ENV=production
+      - STAR_OFFICE_ENV=${STAR_OFFICE_ENV:-production}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+      - ASSET_DRAWER_PASS=${ASSET_DRAWER_PASS}
       - API_TOKEN=${API_TOKEN}
       - ADMIN_TOKEN=${ADMIN_TOKEN}
     networks:
