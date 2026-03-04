@@ -119,15 +119,13 @@ def get_yesterday_date_str():
 
 
 def sanitize_content(text):
-    """清理内容，保护隐私"""
-    import re
-
+    """清理内容，保护隐私 - 增强版"""
+    if not text:
+        return text
+    
     # 移除 OpenID、User ID 等
     text = re.sub(r"ou_[a-f0-9]+", "[用户]", text)
     text = re.sub(r'user_id="[^"]+"', 'user_id="[隐藏]"', text)
-
-    # 移除具体的人名（如果有的话）
-    # 这里可以根据需要添加更多规则
 
     # 移除 IP 地址、路径等敏感信息
     text = re.sub(r'/root/[^"\s]+', "[路径]", text)
@@ -136,6 +134,19 @@ def sanitize_content(text):
     # 移除电话号码、邮箱等
     text = re.sub(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", "[邮箱]", text)
     text = re.sub(r"1[3-9]\d{9}", "[手机号]", text)
+    
+    # 移除 GitHub Token
+    text = re.sub(r'gh[pousr]_[A-Za-z0-9_]{36,}', '[GitHubToken]', text)
+    text = re.sub(r'github_pat_[A-Za-z0-9_]{22,}', '[GitHubToken]', text)
+    
+    # 移除 AWS Keys
+    text = re.sub(r'AKIA[0-9A-Z]{16}', '[AWSKey]', text)
+    
+    # 移除 JWT Token
+    text = re.sub(r'eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*', '[JWT]', text)
+    
+    # 移除 API Key 常见模式
+    text = re.sub(r'[a-zA-Z0-9]{32,}=', '[APIKey]', text)
 
     return text
 
@@ -143,7 +154,19 @@ def sanitize_content(text):
 def extract_memo_from_file(file_path):
     """从 memory 文件中提取适合展示的 memo 内容（睿智风格的总结）"""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        # 安全检查：防止路径穿越攻击
+        abs_memory_dir = os.path.abspath(MEMORY_DIR)
+        abs_file_path = os.path.abspath(file_path)
+        
+        # 验证文件在允许的目录内
+        if not abs_file_path.startswith(abs_memory_dir):
+            return "「文件路径不安全」"
+        
+        # 验证文件存在且是文件而非目录
+        if not os.path.isfile(abs_file_path):
+            return "「文件不存在」"
+        
+        with open(abs_file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # 提取真实内容，不做过度包装

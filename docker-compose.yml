@@ -15,7 +15,7 @@ services:
     #   - ./join-keys.json:/app/join-keys.json:ro
     #   - ./memory:/app/memory:ro
     environment:
-      - FLASK_ENV=development
+      - FLASK_ENV=production
       - API_TOKEN=${API_TOKEN}
       - ADMIN_TOKEN=${ADMIN_TOKEN}
     networks:
