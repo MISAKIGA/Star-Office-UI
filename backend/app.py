@@ -1136,9 +1136,8 @@ def get_source_memo(source, date=None):
 
 
 @app.route("/today-memo", methods=["GET"])
-@app.route("/today-memo", methods=["GET"])
 def get_today_memo():
-    """获取今日工作日志 (从 memory 目录读取)"""
+    """获取今日工作日志"""
     try:
         # 支持 ?source=xxx 指定来源
         source = request.args.get("source", "").strip()
@@ -1161,9 +1160,26 @@ def get_today_memo():
             else:
                 return jsonify({"success": False, "msg": f"没有找到来源 {source} 的今日 memo"})
         
-        # 原逻辑: 读取本地 memory 目录的今日文件
-        today_file = os.path.join(MEMORY_DIR, f"{today_str}.md")
+        # 没有指定来源时，尝试从 sources 目录获取任意一个来源的今日 memo
+        if os.path.exists(SOURCES_DIR):
+            for source_name in os.listdir(SOURCES_DIR):
+                source_path = os.path.join(SOURCES_DIR, source_name)
+                if os.path.isdir(source_path):
+                    memo_file = os.path.join(source_path, f"{today_str}.json")
+                    if os.path.exists(memo_file):
+                        with open(memo_file, "r", encoding="utf-8") as f:
+                            memo_data = json.load(f)
+                        return jsonify({
+                            "success": True, 
+                            "date": memo_data.get("date"),
+                            "source": memo_data.get("source"),
+                            "memo": memo_data.get("memo"),
+                            "summary": memo_data.get("summary"),
+                            "is_today": True
+                        })
         
+        # 尝试读取本地 memory 目录的今日文件
+        today_file = os.path.join(MEMORY_DIR, f"{today_str}.md")
         if os.path.exists(today_file):
             with open(today_file, "r", encoding="utf-8") as f:
                 content = f.read()

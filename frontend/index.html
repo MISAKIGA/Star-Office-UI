@@ -251,13 +251,13 @@
             color: #3b3b32;
             font-size: 12px;
             line-height: 1.8;
-            white-space: pre-wrap;
+            white-space: normal;
             word-wrap: break-word;
             overflow-y: auto;
             flex-grow: 1;
             padding-right: 4px;
             position: relative;
-            left: 80px; /* move content right by 80px */
+            left: 80px;
         }
         #memo-content::-webkit-scrollbar {
             width: 6px;
@@ -275,6 +275,62 @@
             text-align: center;
             padding: 20px 0;
         }
+        
+        /* Markdown Styles in Memo */
+        #memo-content h1, #memo-content h2, #memo-content h3 {
+            color: #e94560;
+            margin: 10px 0 6px 0;
+            font-size: 14px;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(233, 69, 96, 0.3);
+            padding-bottom: 4px;
+        }
+        #memo-content h1 { font-size: 16px; }
+        #memo-content h2 { font-size: 15px; }
+        #memo-content h3 { font-size: 14px; }
+        #memo-content p { margin: 6px 0; }
+        #memo-content ul, #memo-content ol { margin: 6px 0; padding-left: 20px; }
+        #memo-content li { margin: 3px 0; }
+        #memo-content code {
+            background: rgba(0,0,0,0.15);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-family: monospace;
+        }
+        #memo-content pre {
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        #memo-content pre code { background: none; padding: 0; }
+        #memo-content blockquote {
+            border-left: 3px solid #e94560;
+            padding-left: 12px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+            background: rgba(233, 69, 96, 0.1);
+            padding: 8px 12px;
+            border-radius: 0 4px 4px 0;
+        }
+        #memo-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+            font-size: 11px;
+        }
+        #memo-content table th, #memo-content table td {
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            text-align: left;
+        }
+        #memo-content table th { background: rgba(233, 69, 96, 0.2); }
+        #memo-content strong { color: #e94560; }
+        #memo-content em { color: #666; }
+        
         .memo-decoration {
             text-align: center;
             margin: 4px 0;
@@ -541,6 +597,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         // 检测浏览器是否支持 WebP
         let supportsWebP = false;
@@ -607,41 +664,15 @@
             await loadMemoContent(currentMemoTab);
         }
         
-        // Simple markdown parser for memo content
+        // Simple markdown parser using marked.js
         function parseMarkdown(text) {
             if (!text) return '';
-            
-            // Escape HTML first
-            text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            
-            // Headers
-            text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-            text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-            text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-            
-            // Bold and Italic
-            text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
-            
-            // Code blocks
-            text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-            
-            // Blockquotes
-            text = text.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
-            
-            // Lists
-            text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
-            text = text.replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>');
-            
-            // Line breaks
-            text = text.replace(/\n/g, '<br>');
-            
-            // Wrap consecutive <li> in <ul>
-            text = text.replace(/(<li>.*<\/li>)(<br>)?/g, '$1');
-            
-            return text;
+            // Configure marked options
+            marked.setOptions({
+                breaks: true,  // Convert \n to <br>
+                gfm: true       // GitHub Flavored Markdown
+            });
+            return marked.parse(text);
         }
         
         async function loadMemoContent(tab) {
