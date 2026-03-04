@@ -22,7 +22,7 @@
 
 ```bash
 # 1) 克隆仓库
-git clone https://github.com/MISAKIGA/Star-Office-UI.git
+git clone https://github.com/ringhyacinth/Star-Office-UI.git
 cd Star-Office-UI
 
 # 2) 配置环境变量
@@ -41,7 +41,7 @@ docker-compose up -d
 
 ```bash
 # 1) 克隆并安装依赖
-git clone https://github.com/MISAKIGA/Star-Office-UI.git
+git clone https://github.com/ringhyacinth/Star-Office-UI.git
 cd Star-Office-UI
 python3 -m pip install -r backend/requirements.txt
 

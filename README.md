@@ -28,7 +28,7 @@ A pixel office dashboard for multi-agent collaboration: visualize your AI assist
 
 ```bash
 # 1) Clone repository
-git clone https://github.com/MISAKIGA/Star-Office-UI.git
+git clone https://github.com/ringhyacinth/Star-Office-UI.git
 cd Star-Office-UI
 
 # 2) Configure environment
@@ -47,7 +47,7 @@ docker-compose up -d
 
 ```bash
 # 1) Clone and install
-git clone https://github.com/MISAKIGA/Star-Office-UI.git
+git clone https://github.com/ringhyacinth/Star-Office-UI.git
 cd Star-Office-UI
 python3 -m pip install -r backend/requirements.txt
 
