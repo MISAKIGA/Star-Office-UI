@@ -1,0 +1,41 @@
+{
+  "name": "star-office",
+  "version": "1.0.0",
+  "description": "Star Office UI 插件 - 将 Agent 状态同步到像素办公室",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "openclaw": {
+    "plugins": {
+      "star-office": {
+        "configSchema": {
+          "type": "object",
+          "properties": {
+            "apiUrl": {
+              "type": "string",
+              "description": "Star Office UI 后端 API 地址",
+              "default": "http://localhost:5000"
+            },
+            "apiToken": {
+              "type": "string",
+              "description": "API 鉴权 Token"
+            },
+            "agentId": {
+              "type": "string",
+              "description": "Agent ID (可选)"
+            },
+            "agentName": {
+              "type": "string",
+              "description": "Agent 名称 (可选)"
+            },
+            "joinKey": {
+              "type": "string",
+              "description": "接入密钥 (可选，用于 /agent-push)"
+            }
+          },
+          "required": ["apiUrl", "apiToken"]
+        },
+        "lifecycle": ["before_agent_start", "agent_end", "agent_error"]
+      }
+    }
+  }
+}

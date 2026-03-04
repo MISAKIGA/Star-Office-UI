@@ -1,0 +1,26 @@
+{
+  "name": "@star-office/openclaw-plugin",
+  "version": "1.0.0",
+  "description": "Star Office UI OpenClaw Plugin - Sync agent state to pixel office",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "openclaw",
+    "star-office",
+    "plugin",
+    "agent",
+    "state-sync"
+  ],
+  "author": "MISAKIGA",
+  "license": "MIT",
+  "peerDependencies": {
+    "openclaw": ">=1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}
