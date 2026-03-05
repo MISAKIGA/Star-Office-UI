@@ -175,6 +175,29 @@ curl http://localhost:5000/api/v1/admin/tokens \
   -H "X-Admin-Token: your-admin-token"
 ```
 
+### Check Current Token Status
+
+You can view the current token configuration status via the frontend or API:
+
+#### Frontend Interface
+1. Click the ⚙️ **SETTINGS** button in the top right corner
+2. In the settings panel, you can check the API Token and Admin Token configuration status
+
+#### API Check
+```bash
+# Check token configuration status
+curl http://localhost:5000/api/settings/tokens
+```
+
+Response example:
+```json
+{
+  "success": true,
+  "hasApiToken": true,
+  "hasAdminToken": true
+}
+```
+
 ---
 
 ## V. OpenClaw Plugin (Auto State Sync)
@@ -253,7 +276,88 @@ curl -X POST http://localhost:5000/api/v1/admin/token/generate \
 # 3. Copy returned token to plugin config
 ```
 
-### 5.5 Plugin Features
+### 5.5 Plugin Configuration (Detailed Steps)
+
+#### Step 1: Start Service and Configure Admin Token
+
+```bash
+# Start with docker-compose
+cd Star-Office-UI
+docker-compose up -d
+
+# Set Admin Token (via environment variable)
+# Configure in .env file:
+# ADMIN_TOKEN=your-admin-token
+```
+
+#### Step 2: Generate API Token
+
+```bash
+# Generate API Token using Admin Token
+curl -X POST http://localhost:5000/api/v1/admin/token/generate \
+  -H "X-Admin-Token: your-admin-token" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "openclaw-agent", "type": "api"}'
+```
+
+Response example:
+```json
+{
+  "success": true,
+  "token": "HkCboIC8fcKSsy4QOH3l6EMOhr6Q_0PFYNwSUfyAg1w",
+  "name": "openclaw-agent",
+  "created_at": "2026-03-05T01:02:59"
+}
+```
+
+#### Step 3: Configure OpenClaw Plugin
+
+Edit `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "plugins": {
+    "allow": ["star-office"],
+    "entries": {
+      "star-office": {
+        "enabled": true,
+        "config": {
+          "apiUrl": "http://localhost:5000",
+          "apiToken": "HkCboIC8fcKSsy4QOH3l6EMOhr6Q_0PFYNwSUfyAg1w",
+          "agentName": "My Agent"
+        }
+      }
+    }
+  }
+}
+```
+
+Or configure via environment variables:
+
+```bash
+# In docker-compose.yml
+environment:
+  - API_URL=http://localhost:5000
+  - API_TOKEN=HkCboIC8fcKSsy4QOH3l6EMOhr6Q_0PFYNwSUfyAg1w
+```
+
+#### Step 4: Verify Configuration
+
+```bash
+# Check token status
+curl http://localhost:5000/api/settings/tokens
+```
+
+Response:
+```json
+{
+  "success": true,
+  "hasApiToken": true,
+  "hasAdminToken": true
+}
+```
+
+### 5.6 Plugin Features
 
 - ✅ `before_agent_start` - Show "working" when Agent starts
 - ✅ `agent_end` - Show "idle" or "error" when Agent ends

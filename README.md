@@ -206,6 +206,29 @@ curl http://localhost:5000/api/v1/admin/tokens \
   -H "X-Admin-Token: your-admin-token"
 ```
 
+### 查看当前 Token 状态
+
+你可以通过前端界面或 API 查看当前的 Token 配置状态：
+
+#### 前端界面查看
+1. 点击右上角 ⚙️ **SETTINGS** 按钮
+2. 在弹出的设置面板中可以查看 API Token 和 Admin Token 的配置状态
+
+#### API 查看
+```bash
+# 查看 Token 配置状态
+curl http://localhost:5000/api/settings/tokens
+```
+
+响应示例：
+```json
+{
+  "success": true,
+  "hasApiToken": true,
+  "hasAdminToken": true
+}
+```
+
 ---
 
 ## 5、OpenClaw 插件（自动状态同步）
@@ -279,6 +302,93 @@ cd Star-Office-UI && docker-compose up -d
 curl -X POST http://localhost:5000/api/v1/admin/token/generate \
   -H "X-Admin-Token: your-admin-token" \
   -H "Content-Type: application/json" \
+  -d '{"name": "openclaw-agent", "type": "api"}'
+
+# 3. 复制返回的 token 到插件配置
+```
+
+### 5.5 插件配置流程（详细步骤）
+
+#### 步骤一：启动服务并配置 Admin Token
+
+```bash
+# 使用 docker-compose 启动
+cd Star-Office-UI
+docker-compose up -d
+
+# 设置 Admin Token（通过环境变量）
+# 在 .env 文件中配置：
+# ADMIN_TOKEN=your-admin-token
+```
+
+#### 步骤二：生成 API Token
+
+```bash
+# 使用 Admin Token 生成 API Token
+curl -X POST http://localhost:5000/api/v1/admin/token/generate \
+  -H "X-Admin-Token: your-admin-token" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "openclaw-agent", "type": "api"}'
+```
+
+响应示例：
+```json
+{
+  "success": true,
+  "token": "HkCboIC8fcKSsy4QOH3l6EMOhr6Q_0PFYNwSUfyAg1w",
+  "name": "openclaw-agent",
+  "created_at": "2026-03-05T01:02:59"
+}
+```
+
+#### 步骤三：配置 OpenClaw 插件
+
+编辑 `~/.openclaw/openclaw.json`：
+
+```json
+{
+  "plugins": {
+    "allow": ["star-office"],
+    "entries": {
+      "star-office": {
+        "enabled": true,
+        "config": {
+          "apiUrl": "http://localhost:5000",
+          "apiToken": "HkCboIC8fcKSsy4QOH3l6EMOhr6Q_0PFYNwSUfyAg1w",
+          "agentName": "My Agent"
+        }
+      }
+    }
+  }
+}
+```
+
+或者通过环境变量配置：
+
+```bash
+# 在 docker-compose.yml 中
+environment:
+  - API_URL=http://localhost:5000
+  - API_TOKEN=HkCboIC8fcKSsy4QOH3l6EMOhr6Q_0PFYNwSUfyAg1w
+```
+
+#### 步骤四：验证配置
+
+```bash
+# 查看 Token 状态
+curl http://localhost:5000/api/settings/tokens
+```
+
+响应：
+```json
+{
+  "success": true,
+  "hasApiToken": true,
+  "hasAdminToken": true
+}
+```
+
+### 5.6 插件功能
   -d '{"name": "openclaw-agent", "type": "api"}'
 
 # 3. 复制返回的 token 到插件配置

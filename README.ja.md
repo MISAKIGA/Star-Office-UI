@@ -175,6 +175,29 @@ curl http://localhost:5000/api/v1/admin/tokens \
   -H "X-Admin-Token: your-admin-token"
 ```
 
+### 現在の Token 状態を確認
+
+前端または API で現在の Token 設定状態を確認できます：
+
+#### 前端インターフェース
+1. 右上にある ⚙️ **SETTINGS** ボタンをクリック
+2. 設定パネルで API Token と Admin Token の設定状態を確認できます
+
+#### API で確認
+```bash
+# Token 設定状態を確認
+curl http://localhost:5000/api/settings/tokens
+```
+
+レスポンス例：
+```json
+{
+  "success": true,
+  "hasApiToken": true,
+  "hasAdminToken": true
+}
+```
+
 ---
 
 ## V. OpenClaw プラグイン（自動状態同期）
@@ -253,7 +276,88 @@ curl -X POST http://localhost:5000/api/v1/admin/token/generate \
 # 3. 返された token をプラグイン設定にコピー
 ```
 
-### 5.5 プラグイン機能
+### 5.5 プラグイン設定手順（詳細）
+
+#### 手順1：サービスを起動して Admin Token を設定
+
+```bash
+# docker-compose で起動
+cd Star-Office-UI
+docker-compose up -d
+
+# Admin Token を設定（環境変数経由）
+# .env ファイルで設定：
+# ADMIN_TOKEN=your-admin-token
+```
+
+#### 手順2：API Token を生成
+
+```bash
+# Admin Token を使用して API Token を生成
+curl -X POST http://localhost:5000/api/v1/admin/token/generate \
+  -H "X-Admin-Token: your-admin-token" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "openclaw-agent", "type": "api"}'
+```
+
+レスポンス例：
+```json
+{
+  "success": true,
+  "token": "HkCboIC8fcKSsy4QOH3l6EMOhr6Q_0PFYNwSUfyAg1w",
+  "name": "openclaw-agent",
+  "created_at": "2026-03-05T01:02:59"
+}
+```
+
+#### 手順3：OpenClaw プラグインを設定
+
+`~/.openclaw/openclaw.json` を編集：
+
+```json
+{
+  "plugins": {
+    "allow": ["star-office"],
+    "entries": {
+      "star-office": {
+        "enabled": true,
+        "config": {
+          "apiUrl": "http://localhost:5000",
+          "apiToken": "HkCboIC8fcKSsy4QOH3l6EMOhr6Q_0PFYNwSUfyAg1w",
+          "agentName": "My Agent"
+        }
+      }
+    }
+  }
+}
+```
+
+または環境変数で設定：
+
+```bash
+# docker-compose.yml に記載
+environment:
+  - API_URL=http://localhost:5000
+  - API_TOKEN=HkCboIC8fcKSsy4QOH3l6EMOhr6Q_0PFYNwSUfyAg1w
+```
+
+#### 手順4：設定を確認
+
+```bash
+# Token 状態を確認
+curl http://localhost:5000/api/settings/tokens
+```
+
+レスポンス：
+```json
+{
+  "success": true,
+  "hasApiToken": true,
+  "hasAdminToken": true
+}
+```
+
+### 5.6 プラグイン機能
 
 - ✅ `before_agent_start` - Agent 開始時に「工作中」を表示
 - ✅ `agent_end` - Agent 終了時に「待機中」または「エラー」を表示
