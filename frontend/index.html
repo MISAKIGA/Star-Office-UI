@@ -933,6 +933,12 @@
             overflow-y: auto;
             flex-grow: 1;
             padding-right: 4px;
+            text-align: center;
+        }
+        #memo-content div {
+            text-align: left;
+            margin: 0 auto;
+            display: inline-block;
         }
         #memo-content::-webkit-scrollbar {
             width: 6px;
@@ -1574,8 +1580,12 @@
         }
         
         function toggleMemoDate() {
-            memoShowingToday = !memoShowingToday;
-            loadMemo();
+            try {
+                memoShowingToday = !memoShowingToday;
+                loadMemo();
+            } catch(e) {
+                console.error('toggleMemoDate error:', e);
+            }
         }
 
         // 更新加载进度
