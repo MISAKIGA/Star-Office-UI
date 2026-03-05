@@ -4850,15 +4850,23 @@ function toggleBrokerPanel() {
         
         const response = await originalFetch(url, options);
         
-        // Check for auth errors
-        if (!savedApiToken && (url.includes('/agents') || url.includes('/status') || url.includes('/state'))) {
+        // Check for auth errors (401/403) or error JSON in response
+        // Skip static assets (images, fonts, etc.)
+        const isStaticAsset = url.includes('/static/') || url.includes('.png') || url.includes('.webp') || url.includes('.woff');
+        
+        if (!savedApiToken && !isStaticAsset && (url.includes('/agents') || url.includes('/status') || url.includes('/state'))) {
+            // Clone response to read it without consuming the original
             try {
-                const data = await response.clone().json();
+                const clone = response.clone();
+                const data = await clone.json();
                 if (data && (data.error || data.msg)) {
                     showTokenErrorIfNeeded(data.error || data.msg);
                 }
             } catch (e) {
-                // Not JSON, ignore
+                // Not JSON, check HTTP status
+                if (!response.ok && (response.status === 401 || response.status === 403)) {
+                    showTokenErrorIfNeeded('Unauthorized');
+                }
             }
         }
         
@@ -4881,7 +4889,10 @@ function toggleBrokerPanel() {
         // Hook into onload to check for auth errors
         const originalOnLoad = this.onload;
         this.onload = function() {
-            if (!savedApiToken && (this.responseURL.includes('/agents') || this.responseURL.includes('/status'))) {
+            // Skip static assets
+            const isStaticAsset = this.responseURL.includes('/static/') || this.responseURL.includes('.png') || this.responseURL.includes('.webp') || this.responseURL.includes('.woff');
+            
+            if (!savedApiToken && !isStaticAsset && (this.responseURL.includes('/agents') || this.responseURL.includes('/status'))) {
                 try {
                     const data = JSON.parse(this.responseText);
                     if (data && (data.error || data.msg)) {
@@ -4889,7 +4900,10 @@ function toggleBrokerPanel() {
                     }
                 } catch (e) {}
             }
-            if (originalOnLoad) originalOnLoad.call(this);
+            // Safely call original onload
+            if (typeof originalOnLoad === 'function') {
+                originalOnLoad.call(this);
+            }
         };
         
         return originalXHRSend.call(this, body);
