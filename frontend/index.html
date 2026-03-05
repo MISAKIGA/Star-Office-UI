@@ -1278,8 +1278,6 @@
         显示坐标
     </button>
     <button id="token-settings-btn" onclick="openTokenSettings()" style="position:fixed; top:calc(env(safe-area-inset-top, 0px) + 12px); right:90px; z-index:999999; padding:8px 10px; font-family:ArkPixel,monospace; font-size:13px; cursor:pointer; border:2px solid #333; border-radius:5px; background:#333; color:#fff;">
-        ⚙️ SETTINGS
-    </button>
     <button id="pan-toggle" style="position:fixed; top:calc(env(safe-area-inset-top, 0px) + 12px); left:12px; z-index:999999; padding:8px 10px; font-family:ArkPixel,monospace; font-size:13px; cursor:pointer; border:2px solid #333; border-radius:5px; background:#333; color:#fff;">
         移动视野
     </button>
@@ -1320,6 +1318,7 @@
                 assetHintNotInScene: '当前场景未检测到此对象，仍可替换文件（刷新后生效）',
                 assetHintDefault: '通用素材：建议保持原图尺寸、透明通道与视觉重心一致，避免错位或失真',
                 showCoords: '显示坐标', hideCoords: '隐藏坐标', moveView: '移动视野', lockView: '锁定视野',
+                tokenSettings: '设置 Token',
                 memoTitle: '昨 日 小 记', guestTitle: '访 客 列 表', officeTitle: '海辛小龙虾的办公室',
                 loadingOffice: '正在加载 Star 的像素办公室...'
             },
@@ -1348,6 +1347,7 @@
                 assetHintNotInScene: 'This object is not detected in current scene; you can still replace file (effective after refresh)',
                 assetHintDefault: 'Generic asset: keep source size, alpha channel, and visual anchor to avoid drift/distortion',
                 showCoords: 'Show Coords', hideCoords: 'Hide Coords', moveView: 'Pan View', lockView: 'Lock View',
+                tokenSettings: 'Token Settings',
                 memoTitle: 'YESTERDAY NOTES', guestTitle: 'VISITOR LIST', officeTitle: 'Haixin Lobster Office',
                 loadingOffice: 'Loading Star’s pixel office...'
             },
@@ -1376,6 +1376,7 @@
                 assetHintNotInScene: '現在のシーンでこのオブジェクトは未検出です。ファイル差し替えは可能（更新後に反映）',
                 assetHintDefault: '汎用素材：元サイズ・透過・視覚アンカーを維持し、ズレや崩れを防いでください',
                 showCoords: '座標表示', hideCoords: '座標非表示', moveView: '視点移動', lockView: '視点固定',
+                tokenSettings: 'Token設定',
                 memoTitle: '昨日のメモ', guestTitle: '訪問者リスト', officeTitle: 'ハイシン・ロブスターのオフィス',
                 loadingOffice: 'Star のピクセルオフィスを読み込み中...'
             }
@@ -1468,6 +1469,8 @@
 
             const coordsBtn = document.getElementById('coords-toggle');
             if (coordsBtn) coordsBtn.textContent = showCoords ? t('hideCoords') : t('showCoords');
+            const tokenSettingsBtn = document.getElementById('token-settings-btn');
+            if (tokenSettingsBtn) tokenSettingsBtn.textContent = '⚙️ ' + t('tokenSettings');
             const panBtn = document.getElementById('pan-toggle');
             if (panBtn) {
                 const on = panBtn.dataset.on === '1';
