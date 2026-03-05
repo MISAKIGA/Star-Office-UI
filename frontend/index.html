@@ -1277,6 +1277,9 @@
     <button id="coords-toggle" style="position:fixed; top:calc(env(safe-area-inset-top, 0px) + 12px); right:12px; z-index:999999; padding:8px 10px; font-family:ArkPixel,monospace; font-size:13px; cursor:pointer; border:2px solid #333; border-radius:5px; background:#333; color:#fff;">
         显示坐标
     </button>
+    <button id="token-settings-btn" onclick="openTokenSettings()" style="position:fixed; top:calc(env(safe-area-inset-top, 0px) + 12px); right:90px; z-index:999999; padding:8px 10px; font-family:ArkPixel,monospace; font-size:13px; cursor:pointer; border:2px solid #333; border-radius:5px; background:#333; color:#fff;">
+        ⚙️ SETTINGS
+    </button>
     <button id="pan-toggle" style="position:fixed; top:calc(env(safe-area-inset-top, 0px) + 12px); left:12px; z-index:999999; padding:8px 10px; font-family:ArkPixel,monospace; font-size:13px; cursor:pointer; border:2px solid #333; border-radius:5px; background:#333; color:#fff;">
         移动视野
     </button>
@@ -4878,11 +4881,6 @@ function toggleBrokerPanel() {
 
     console.log('✅ Token Request Interceptor 已加载');
 </script>
-
-    <!-- Token Settings Button -->
-    <button id="token-settings-btn" onclick="openTokenSettings()" style="position:fixed; top:calc(env(safe-area-inset-top, 0px) + 12px); right:80px; z-index:999999; padding:8px 10px; font-family:ArkPixel,monospace; font-size:13px; cursor:pointer; border:2px solid #333; border-radius:5px; background:#333; color:#fff;">⚙️ SETTINGS</button>
-        ⚙️ SETTINGS
-    </button>
 
     <!-- Token Settings Modal -->
     <div id="token-settings-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999999; align-items:center; justify-content:center;">
