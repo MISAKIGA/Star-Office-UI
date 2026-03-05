@@ -1552,24 +1552,37 @@
         let loadingProgressBar, loadingProgressContainer, loadingOverlay, loadingText;
 
         // Memo 相关函数
+        let memoShowingToday = false;
+        
         async function loadMemo() {
             const memoDate = document.getElementById('memo-date');
             const memoContent = document.getElementById('memo-content');
+            const memoToggle = document.getElementById('memo-toggle');
             
             try {
-                const response = await fetch('/yesterday-memo?t=' + Date.now(), { cache: 'no-store' });
+                const endpoint = memoShowingToday ? '/today-memo' : '/yesterday-memo';
+                const response = await fetch(endpoint + '?t=' + Date.now(), { cache: 'no-store' });
                 const data = await response.json();
                 
                 if (data.success && data.memo) {
                     memoDate.textContent = data.date || '';
                     memoContent.innerHTML = data.memo.replace(/\n/g, '<br>');
                 } else {
-                    memoContent.innerHTML = '<div id="memo-placeholder">暂无昨日日记</div>';
+                    memoContent.innerHTML = '<div id="memo-placeholder">暂无日记</div>';
+                }
+                
+                if (memoToggle) {
+                    memoToggle.textContent = memoShowingToday ? '← 昨日' : '今日 →';
                 }
             } catch (e) {
                 console.error('加载 memo 失败:', e);
                 memoContent.innerHTML = '<div id="memo-placeholder">加载失败</div>';
             }
+        }
+        
+        function toggleMemoDate() {
+            memoShowingToday = !memoShowingToday;
+            loadMemo();
         }
 
         // 更新加载进度
