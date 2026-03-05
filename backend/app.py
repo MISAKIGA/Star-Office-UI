@@ -484,6 +484,7 @@ if not os.path.exists(JOIN_KEYS_FILE):
 
 
 @app.route("/agents", methods=["GET"])
+@require_api_token
 def get_agents():
     """Get full agents list (for multi-agent UI), with auto-cleanup on access"""
     agents = load_agents_state()
@@ -874,6 +875,7 @@ def leave_agent():
 
 
 @app.route("/status", methods=["GET"])
+@require_api_token
 def get_status():
     """Get current main state (backward compatibility)"""
     state = load_state()

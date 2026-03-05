@@ -4819,6 +4819,24 @@ function toggleBrokerPanel() {
 <script>
     // ==================== Token Storage ====================
     let savedApiToken = localStorage.getItem('apiToken') || '';
+    let tokenErrorShown = false;  // Prevent repeated error dialogs
+
+    // ==================== Token Error Handler ====================
+    function showTokenErrorIfNeeded(errorMsg) {
+        if (tokenErrorShown) return;
+        if (errorMsg && (errorMsg.includes('Missing X-API-Token') || errorMsg.includes('Invalid token') || errorMsg.includes('401') || errorMsg.includes('403'))) {
+            tokenErrorShown = true;
+            alert('⚠️ API Token 未设置或已过期\n\n请设置 Token 以继续使用。');
+            // Open token settings modal
+            if (typeof openTokenSettings === 'function') {
+                openTokenSettings();
+            } else {
+                // Fallback: show modal directly
+                const modal = document.getElementById('token-settings-modal');
+                if (modal) modal.style.display = 'flex';
+            }
+        }
+    }
 
     // ==================== Request Interceptor ====================
     const originalFetch = window.fetch;
@@ -4830,7 +4848,21 @@ function toggleBrokerPanel() {
             options.headers['X-API-Token'] = savedApiToken;
         }
         
-        return originalFetch(url, options);
+        const response = await originalFetch(url, options);
+        
+        // Check for auth errors
+        if (!savedApiToken && (url.includes('/agents') || url.includes('/status') || url.includes('/state'))) {
+            try {
+                const data = await response.clone().json();
+                if (data && (data.error || data.msg)) {
+                    showTokenErrorIfNeeded(data.error || data.msg);
+                }
+            } catch (e) {
+                // Not JSON, ignore
+            }
+        }
+        
+        return response;
     };
 
     // ==================== XHR Interceptor ====================
@@ -4845,6 +4877,21 @@ function toggleBrokerPanel() {
         if (this._token) {
             this.setRequestHeader('X-API-Token', this._token);
         }
+        
+        // Hook into onload to check for auth errors
+        const originalOnLoad = this.onload;
+        this.onload = function() {
+            if (!savedApiToken && (this.responseURL.includes('/agents') || this.responseURL.includes('/status'))) {
+                try {
+                    const data = JSON.parse(this.responseText);
+                    if (data && (data.error || data.msg)) {
+                        showTokenErrorIfNeeded(data.error || data.msg);
+                    }
+                } catch (e) {}
+            }
+            if (originalOnLoad) originalOnLoad.call(this);
+        };
+        
         return originalXHRSend.call(this, body);
     };
 
