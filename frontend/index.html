@@ -887,20 +887,17 @@
             color: #1a1b2f;
             font-size: 16px;
             font-weight: bold;
-            margin-bottom: 6px;
             text-align: center;
             letter-spacing: 1px;
             flex-shrink: 0;
-            position: relative;
-            top: 15px;
         }
         #memo-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 0 10px;
-            position: relative;
-            top: 10px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
         }
         #memo-toggle {
             background: #1a1b2f;
@@ -920,13 +917,10 @@
         #memo-date {
             color: #888;
             font-size: 10px;
-            margin-bottom: 8px;
             text-align: right;
             flex-shrink: 0;
-            position: relative;
-            left: 0px;
-            top: -15px;
             padding-right: 10px;
+            margin-bottom: 4px;
         }
         #memo-content {
             color: #3b3b32;
@@ -937,9 +931,6 @@
             overflow-y: auto;
             flex-grow: 1;
             padding-right: 4px;
-            position: relative;
-            left: 100px; /* move content right by 100px */
-            top: -10px;
         }
         #memo-content::-webkit-scrollbar {
             width: 6px;
