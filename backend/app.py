@@ -1047,6 +1047,111 @@ def set_state_endpoint():
         return jsonify({"status": "error", "msg": str(e)}), 500
 
 
+# ==================== Memo Sync API (for OpenClaw Plugin) ====================
+
+MEMOS_FILE = os.path.join(DATA_DIR, "memos.json")
+
+def load_memos():
+    """Load memos from file"""
+    try:
+        if os.path.exists(MEMOS_FILE):
+            with open(MEMOS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {"memos": []}
+
+def save_memos(data):
+    """Save memos to file"""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(MEMOS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+@app.route("/sync-memo", methods=["POST"])
+@require_api_token
+def sync_memo():
+    """同步日记到后端 (OpenClaw 插件调用)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "msg": "No data provided"}), 400
+        
+        source = data.get("source", "").strip()
+        date = data.get("date", "").strip()
+        memo = data.get("memo", "")
+        summary = data.get("summary", "")
+        
+        if not source:
+            return jsonify({"success": False, "msg": "Missing source"}), 400
+        if not date:
+            return jsonify({"success": False, "msg": "Missing date"}), 400
+        if not memo:
+            return jsonify({"success": False, "msg": "Missing memo content"}), 400
+        
+        memos_data = load_memos()
+        memos = memos_data.get("memos", [])
+        
+        # Find existing memo for this source+date or create new
+        found = False
+        for m in memos:
+            if m.get("source") == source and m.get("date") == date:
+                m["memo"] = memo
+                m["summary"] = summary
+                m["updated_at"] = datetime.now().isoformat()
+                found = True
+                break
+        
+        if not found:
+            memos.append({
+                "source": source,
+                "date": date,
+                "memo": memo,
+                "summary": summary,
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
+            })
+        
+        memos_data["memos"] = memos
+        save_memos(memos_data)
+        
+        return jsonify({"success": True, "msg": "Memo synced", "source": source, "date": date})
+    except Exception as e:
+        return jsonify({"success": False, "msg": str(e)}), 500
+
+
+@app.route("/sources/<source_id>/memo", methods=["GET"])
+@require_api_token
+def get_source_memo(source_id):
+    """获取指定来源的日记 (OpenClaw 插件调用)"""
+    try:
+        date = request.args.get("date", "")  # Optional: filter by date
+        
+        memos_data = load_memos()
+        memos = memos_data.get("memos", [])
+        
+        # Filter by source
+        filtered = [m for m in memos if m.get("source") == source_id]
+        
+        # Filter by date if provided
+        if date:
+            filtered = [m for m in filtered if m.get("date") == date]
+        
+        if not filtered:
+            return jsonify({"success": False, "msg": "No memo found", "source": source_id}), 404
+        
+        # Return latest if no date filter
+        if not date:
+            filtered = sorted(filtered, key=lambda x: x.get("updated_at", ""), reverse=True)
+        
+        return jsonify({
+            "success": True,
+            "source": source_id,
+            "memo": filtered[0]
+        })
+    except Exception as e:
+        return jsonify({"success": False, "msg": str(e)}), 500
+
+
 # ==================== Admin Token API ====================
 
 @app.route("/api/v1/admin/token/generate", methods=["POST"])
